@@ -87,10 +87,10 @@ public:
 
   T deleteAt(int pos) {
     if (head == NULL) {
-      throw runtime_error("List is empty");
+      cout << "List is empty" << endl;
     }
     if (pos < 0) {
-      throw runtime_error("Invalid Position");
+      cout << "Invalid Position" << endl;
     }
     if (pos == 0) {
       T toReturn = head->getData();
@@ -104,7 +104,7 @@ public:
     }
 
     if (temp->getNext() == NULL) {
-      throw runtime_error("Position out of range");
+      cout << "Position out of range" << endl;
     }
 
     Node<T> *toDelete = temp->getNext();
