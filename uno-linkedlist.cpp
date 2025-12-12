@@ -178,7 +178,26 @@ public:
 class Deck {
     LinkedList<Card> cards;
 public:
-    Deck() {}
+    Deck() {
+        Color colors[] = {RED, GREEN, BLUE, YELLOW};
+        for (Color color : colors) {
+            cards.insertEnd(Card(color, NUMBER, 0));
+            for (int i = 1; i <= 9; ++i) {
+                cards.insertEnd(Card(color, NUMBER, i));
+                cards.insertEnd(Card(color, NUMBER, i));
+            }
+            cards.insertEnd(Card(color, SKIP));
+            cards.insertEnd(Card(color, SKIP));
+            cards.insertEnd(Card(color, REVERSE));
+            cards.insertEnd(Card(color, REVERSE));
+            cards.insertEnd(Card(color, DRAW_TWO));
+            cards.insertEnd(Card(color, DRAW_TWO));
+        }
+        for (int i = 0; i < 4; ++i) {
+            cards.insertEnd(Card(WILD, WILD_COLOR));
+            cards.insertEnd(Card(WILD, WILD_DRAW_FOUR));
+        }
+    }
 
     bool isEmpty() {
         return cards.getHead() == NULL;
@@ -193,6 +212,7 @@ int main() {
     cout << c.toString() << endl;
     cout << c2.toString() << endl;
     Deck d;
+    cout << d.isEmpty() << endl;
 
     return 0; 
 }
