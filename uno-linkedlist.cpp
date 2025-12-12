@@ -1,6 +1,127 @@
 #include <iostream>
 using namespace std;
 
-int main(){
-    return 0;
-}
+template <typename T> class Node {
+  T data;
+  Node<T> *next;
+
+public:
+  Node(T d) : data(d), next(nullptr) {}
+
+  T getData() { return data; }
+  void setData(T d) { data = d; }
+
+  Node<T> *getNext() { return next; }
+  void setNext(Node<T> *n) { next = n; }
+};
+
+template <typename T> class LinkedList {
+  Node<T> *head;
+  Node<T> *tail;
+
+public:
+  LinkedList() {
+    head = nullptr;
+    tail = nullptr;
+  }
+
+  bool isEmpty() const { return head == nullptr; }
+
+  void insertFront(T val) {
+    Node<T> *newNode = new Node<T>(val);
+
+    if (isEmpty()) {
+      head = tail = newNode;
+      return;
+    }
+
+    newNode->setNext(head);
+    head = newNode;
+  }
+
+  void insertEnd(T val) {
+    Node<T> *newNode = new Node<T>(val);
+
+    if (isEmpty()) {
+      head = tail = newNode;
+      return;
+    }
+
+    tail->setNext(newNode);
+    tail = newNode;
+  }
+
+  void deleteFront() {
+    if (isEmpty())
+      return;
+
+    Node<T> *temp = head;
+    head = head->getNext();
+
+    if (head == nullptr)
+      tail = nullptr;
+
+    delete temp;
+  }
+
+  void deleteEnd() {
+    if (isEmpty())
+      return;
+
+    if (head == tail) {
+      delete head;
+      head = tail = nullptr;
+      return;
+    }
+
+    Node<T> *temp = head;
+
+    while (temp->getNext() != tail) {
+      temp = temp->getNext();
+    }
+
+    delete tail;
+    tail = temp;
+    tail->setNext(nullptr);
+  }
+
+  T deleteAt(int pos) {
+    if (head == NULL) {
+      throw runtime_error("List is empty");
+    }
+    if (pos < 0) {
+      throw runtime_error("Invalid Position");
+    }
+    if (pos == 0) {
+      T toReturn = head->getData();
+      deleteFront();
+      return toReturn;
+    }
+
+    Node<T> *temp = head;
+    for (int i = 1; i < pos && temp->getNext() != NULL; i++) {
+      temp = temp->getNext();
+    }
+
+    if (temp->getNext() == NULL) {
+      throw runtime_error("Position out of range");
+    }
+
+    Node<T> *toDelete = temp->getNext();
+    T toReturn = toDelete->getData();
+    temp->setNext(toDelete->getNext());
+
+    if (toDelete == tail) {
+      tail = temp;
+    }
+
+    delete toDelete;
+    return toReturn;
+  }
+
+  Node<T> *getHead() const { return head; }
+
+  Node<T> *getTail() const { return tail; }
+};
+
+int main() { return 0; }
