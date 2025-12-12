@@ -175,12 +175,24 @@ public:
     }
 };
 
+class Deck {
+    LinkedList<Card> cards;
+public:
+    Deck() {}
 
-int main() { 
+    bool isEmpty() {
+        return cards.getHead() == NULL;
+    }
+    
+};
+
+int main() {
+     
     Card c(RED,SKIP);
     Card c2(YELLOW,NUMBER, 9);
     cout << c.toString() << endl;
     cout << c2.toString() << endl;
+    Deck d;
 
     return 0; 
 }
