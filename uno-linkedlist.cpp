@@ -150,10 +150,37 @@ public:
 
     Card() : color(WILD), type(NUMBER), number(-1) {}
     Card(Color c, CardType t, int n = -1) : color(c), type(t), number(n) {}
+
+    string toString() const {
+        string colorStr;
+        switch (color) {
+            case RED: colorStr = "Red"; break;
+            case GREEN: colorStr = "Green"; break;
+            case BLUE: colorStr = "Blue"; break;
+            case YELLOW: colorStr = "Yellow"; break;
+            case WILD: colorStr = "Wild"; break;
+        }
+
+        string typeStr;
+        switch (type) {
+            case NUMBER: typeStr = to_string(number); break;
+            case SKIP: typeStr = "Skip"; break;
+            case REVERSE: typeStr = "Reverse"; break;
+            case DRAW_TWO: typeStr = "Draw Two"; break;
+            case WILD_COLOR: typeStr = "Wild Color"; break;
+            case WILD_DRAW_FOUR: typeStr = "Wild Draw Four"; break;
+        }
+
+        return colorStr + " " + typeStr;
+    }
 };
 
 
 int main() { 
     Card c(RED,SKIP);
+    Card c2(YELLOW,NUMBER, 9);
+    cout << c.toString() << endl;
+    cout << c2.toString() << endl;
+
     return 0; 
 }
