@@ -124,4 +124,36 @@ public:
   Node<T> *getTail() const { return tail; }
 };
 
-int main() { return 0; }
+
+enum Color {
+    RED,
+    GREEN,
+    BLUE,
+    YELLOW,
+    WILD
+};
+
+enum CardType {
+    NUMBER,
+    SKIP,
+    REVERSE,
+    DRAW_TWO,
+    WILD_COLOR,
+    WILD_DRAW_FOUR
+};
+
+class Card {
+public:
+    Color color;
+    CardType type;
+    int number; // valid only if card is 
+
+    Card() : color(WILD), type(NUMBER), number(-1) {}
+    Card(Color c, CardType t, int n = -1) : color(c), type(t), number(n) {}
+};
+
+
+int main() { 
+    Card c(RED,SKIP);
+    return 0; 
+}
