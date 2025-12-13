@@ -1,6 +1,8 @@
 #include <iostream>
 #include <vector>
 #include <random>
+#include <algorithm>
+#include <string>
 using namespace std;
 
 mt19937 rng(random_device{}());
@@ -97,9 +99,11 @@ public:
   T deleteAt(int pos) {
     if (head == NULL) {
       cout << "List is empty" << endl;
+      return T();
     }
     if (pos < 0) {
       cout << "Invalid Position" << endl;
+      return T();
     }
     if (pos == 0) {
       T toReturn = head->getData();
@@ -114,6 +118,7 @@ public:
 
     if (temp->getNext() == NULL) {
       cout << "Position out of range" << endl;
+      return T();
     }
 
     Node<T> *toDelete = temp->getNext();
@@ -131,6 +136,12 @@ public:
   Node<T> *getHead() const { return head; }
 
   Node<T> *getTail() const { return tail; }
+
+  ~LinkedList() {
+    while (!isEmpty()) {
+        deleteFront();
+    }
+}
 };
 
 
@@ -157,7 +168,7 @@ public:
     CardType type;
     int number; // valid only if card is 
 
-    Card() : color(WILD), type(NUMBER), number(-1) {}
+    Card() : color(WILD), type(WILD_COLOR), number(-1) {}
     Card(Color c, CardType t, int n = -1) : color(c), type(t), number(n) {}
 
     string toString() const {
@@ -210,8 +221,9 @@ public:
 
     Card drawCard() {
         Node<Card>* headNode = cards.getHead();
-        if (headNode == NULL) {
+        if (headNode == nullptr) {
             cout << "Deck is empty" << endl;
+            return Card();
         }
         Card drawnCard = headNode->getData();
         cards.deleteFront();
@@ -254,6 +266,43 @@ public:
     
 };
 
+class DiscardPile {
+    LinkedList<Card> pile;
+public:
+    void addCard(Card c) {
+        pile.insertEnd(c);
+    }
+
+    Card getTopCard() {
+        Node<Card>* tailNode = pile.getTail();
+        if (tailNode == nullptr) {
+            cout << "Discard pile is empty" << endl;
+            return Card();
+        }
+        return tailNode->getData();
+    }
+
+    void resetIntoDeck(Deck& deck) {
+        if(pile.isEmpty()) {
+            cout << "Discard pile is empty" << endl;
+            return;
+        }
+
+       Card topCard = getTopCard();
+       pile.deleteEnd();
+        while (!pile.isEmpty()) {
+              Card c = pile.getHead()->getData();
+              deck.insertCardToBottom(c);
+              pile.deleteFront();
+        }
+        pile.insertEnd(topCard);
+    }
+
+    bool isEmpty() {
+        return pile.isEmpty();
+    }
+};
+
 int main() {
      
     Card c(RED,SKIP);
@@ -266,6 +315,13 @@ int main() {
     cout << dCard.toString() << endl;
     d.shuffle();
     dCard = d.drawCard();
+    cout << dCard.toString() << endl;
+
+    DiscardPile dPile;
+    dCard = dPile.getTopCard();
+    cout << dCard.toString() << endl;
+    dPile.addCard(Card(YELLOW,NUMBER,4));
+    dCard = dPile.getTopCard();
     cout << dCard.toString() << endl;
 
     return 0; 
