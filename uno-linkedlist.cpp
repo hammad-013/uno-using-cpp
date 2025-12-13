@@ -1,5 +1,14 @@
 #include <iostream>
+#include <vector>
+#include <random>
 using namespace std;
+
+std::mt19937 rng(std::random_device{}());
+
+int randomValue(int a, int b) {
+    std::uniform_int_distribution<int> dist(a, b);
+    return dist(rng);
+}
 
 template <typename T> class Node {
   T data;
@@ -199,9 +208,49 @@ public:
         }
     }
 
+    Card drawCard() {
+        Node<Card>* headNode = cards.getHead();
+        if (headNode == NULL) {
+            throw runtime_error("Deck is empty");
+        }
+        Card drawnCard = headNode->getData();
+        cards.deleteFront();
+        return drawnCard;
+    }
+
+    void insertCardToBottom(Card c) {
+        cards.insertEnd(c);
+    }
+
     bool isEmpty() {
         return cards.getHead() == NULL;
     }
+
+    void shuffle() { // time = O(n) +  space = O(n)
+        if (cards.getHead() == nullptr || cards.getHead()->getNext() == nullptr) {
+        return;
+    }
+
+        // linkedlist to array
+        vector<Card> tempCards;
+        Node<Card>* current = cards.getHead();
+        while(current != NULL) {
+            tempCards.push_back(current->getData());
+            current = current->getNext();
+        }
+        // shuffle array
+        for(int i = tempCards.size() - 1; i > 0; --i) {
+            int j = randomValue(0, i);
+            swap(tempCards[i], tempCards[j]);
+        }
+        
+        // array to linkedlist
+        current = cards.getHead();
+        for(const Card& c : tempCards) {
+            current->setData(c);
+            current = current->getNext();
+        }
+    }    
     
 };
 
@@ -213,6 +262,11 @@ int main() {
     cout << c2.toString() << endl;
     Deck d;
     cout << d.isEmpty() << endl;
+    Card dCard = d.drawCard();
+    cout << dCard.toString() << endl;
+    d.shuffle();
+    dCard = d.drawCard();
+    cout << dCard.toString() << endl;
 
     return 0; 
 }
