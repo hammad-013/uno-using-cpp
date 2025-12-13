@@ -211,7 +211,7 @@ public:
     Card drawCard() {
         Node<Card>* headNode = cards.getHead();
         if (headNode == NULL) {
-            throw runtime_error("Deck is empty");
+            cout << "Deck is empty" << endl;
         }
         Card drawnCard = headNode->getData();
         cards.deleteFront();
