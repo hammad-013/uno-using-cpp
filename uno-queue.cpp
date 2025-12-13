@@ -7,8 +7,8 @@ int main() {
   SetTargetFPS(60);
   while (!WindowShouldClose()) {
     BeginDrawing();
-    ClearBackground(RAYWHITE);
-    DrawText("It works!", 20, 20, 20, BLACK);
+    ClearBackground(DARKGREEN);
+    DrawText("PLAYER 1 TURN", 20, 20, 20, RED);
     EndDrawing();
   }
   CloseWindow();
