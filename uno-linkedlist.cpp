@@ -3,10 +3,10 @@
 #include <random>
 using namespace std;
 
-std::mt19937 rng(std::random_device{}());
+mt19937 rng(random_device{}());
 
 int randomValue(int a, int b) {
-    std::uniform_int_distribution<int> dist(a, b);
+    uniform_int_distribution<int> dist(a, b);
     return dist(rng);
 }
 
