@@ -303,6 +303,55 @@ public:
     }
 };
 
+
+
+class Player {
+    LinkedList<Card> hand;
+    string name;
+    int id;
+public:
+    Player() : name(""), id(-1) {}
+    Player(string n, int i) : name(n), id(i) {}
+
+    string getName() const {
+        return name;
+    }
+
+    int getId() const {
+        return id;
+    }
+
+    int getHandSize() const {
+        int count = 0;
+        Node<Card>* temp = hand.getHead();
+        while (temp != NULL) {
+            count++;
+            temp = temp->getNext();
+        }
+        return count;
+    }
+
+    void addToHand(Card c) {
+        hand.insertEnd(c);
+    }
+
+    Card playCard(int index) {
+        return hand.deleteAt(index);
+    }
+
+    void printHand() {
+        Node<Card>* temp = hand.getHead();
+        cout << name << "'s hand: ";
+        int index = 0;
+        while (temp != NULL) {
+            cout << "[" << index << "] " << temp->getData().toString() << "  ";
+            temp = temp->getNext();
+            index++;
+        }
+        cout << endl;
+    }
+};
+
 int main() {
      
     Card c(RED,SKIP);
@@ -324,5 +373,16 @@ int main() {
     dCard = dPile.getTopCard();
     cout << dCard.toString() << endl;
 
+
+    Player p1("Ab Rehman", 1);
+    p1.addToHand(Card(BLUE,NUMBER,5));
+    p1.addToHand(Card(RED,SKIP));
+    p1.printHand();
+    Player p2("Ab", 2);
+    p2.addToHand(Card(BLUE,SKIP));
+    p2.addToHand(Card(RED,SKIP));
+    p2.printHand();
+
+    cout << p1.getName() << " Hand size: " << p1.getHandSize() << endl;
     return 0; 
 }
