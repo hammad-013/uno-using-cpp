@@ -352,6 +352,37 @@ public:
     }
 };
 
+
+class TurnManager {
+    int currentPlayerIndex;
+    int totalPlayers;
+    int direction; // 1 for clockwise, -1 for anti-clockwise
+public:
+    TurnManager(int total) : currentPlayerIndex(0), totalPlayers(total), direction(1) {}
+
+    int getCurrentPlayerIndex() {
+        return currentPlayerIndex;
+    }
+
+    int getNextPlayer() {
+        return (currentPlayerIndex + direction + totalPlayers) % totalPlayers;
+    }
+
+    void moveToNextPlayer() {
+        currentPlayerIndex = (currentPlayerIndex + direction + totalPlayers) % totalPlayers;
+    }
+
+    void reverseDirection() {
+        direction *= -1;
+    }
+
+    void skipNextPlayer() {
+        moveToNextPlayer();
+        moveToNextPlayer();
+    }
+ 
+};
+
 int main() {
      
     Card c(RED,SKIP);
@@ -384,5 +415,19 @@ int main() {
     p2.printHand();
 
     cout << p1.getName() << " Hand size: " << p1.getHandSize() << endl;
+
+    TurnManager t(4);
+    cout << t.getCurrentPlayerIndex() << endl;
+    cout << t.getNextPlayer() << endl;
+    t.moveToNextPlayer();
+    cout << t.getCurrentPlayerIndex() << endl;
+    cout << t.getNextPlayer() << endl;
+    t.skipNextPlayer();
+    cout << t.getCurrentPlayerIndex() << endl;
+    cout << t.getNextPlayer() << endl;
+    t.reverseDirection();
+    cout << t.getCurrentPlayerIndex() << endl;
+    cout << t.getNextPlayer() << endl;
+    
     return 0; 
 }
