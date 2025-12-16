@@ -331,6 +331,27 @@ public:
         return count;
     }
 
+    bool hasColor(Color color) const {
+        Node<Card>* temp = hand.getHead();
+        while (temp != nullptr) {
+            if (temp->getData().color == color) return true;
+            temp = temp->getNext();
+        }
+        return false;
+    }
+
+    bool hasPlayable(Card topCard, Color currentColor) {
+        Node<Card>* temp = hand.getHead();
+        while(temp != NULL) {
+            Card c = temp->getData();
+            if(c.color == currentColor || c.type == topCard.type || (c.type == NUMBER && topCard.type == NUMBER && c.number == topCard.number) || c.color == WILD) {
+                return true;
+            }
+            temp = temp->getNext();
+        }
+        return false;
+    }
+
     void addToHand(Card c) {
         hand.insertEnd(c);
     }
@@ -383,6 +404,53 @@ public:
  
 };
 
+
+class Game {
+public:
+    Color currentColor;
+    Deck deck;
+    DiscardPile discardPile;
+    Player players[4]; // max 4 players
+    TurnManager turnManager;
+    Game() : turnManager(4) {
+        for (int i = 0; i < 4; i++) {
+            players[i] = Player("Player " + to_string(i + 1), i);
+        }
+    }
+    void start() {
+        deck.shuffle();
+        for(int i = 0; i < 7; i++) {
+            for(int j = 0; j < 4; j++) {
+                Card c = deck.drawCard();
+                players[j].addToHand(c);
+            } 
+        }
+        Card firstCard = deck.drawCard();
+        while(firstCard.color == WILD || firstCard.type == REVERSE || firstCard.type == SKIP || firstCard.type == DRAW_TWO) {
+            deck.insertCardToBottom(firstCard);
+            deck.shuffle();
+            firstCard = deck.drawCard();
+        } 
+        discardPile.addCard(firstCard);
+        currentColor = firstCard.color;
+    }
+
+    bool isCardValid(Card selectedCard) {
+        if(selectedCard.color == WILD || 
+                    selectedCard.type == WILD_COLOR || 
+                    selectedCard.type == WILD_DRAW_FOUR ||
+                    selectedCard.color == currentColor || 
+                    (selectedCard.type == NUMBER && discardPile.getTopCard().type == NUMBER && selectedCard.number == discardPile.getTopCard().number) ||
+                    (selectedCard.type != NUMBER && selectedCard.type == discardPile.getTopCard().type)) {
+                    return true;
+                }
+                else {
+                    cout << "You cannot play " << selectedCard.toString() << " on " << discardPile.getTopCard().toString() << endl;
+                    return false;
+                }
+    }
+};
+
 int main() {
      
     Card c(RED,SKIP);
@@ -428,6 +496,17 @@ int main() {
     t.reverseDirection();
     cout << t.getCurrentPlayerIndex() << endl;
     cout << t.getNextPlayer() << endl;
+
+    Player p3;
+    p3.addToHand(Card(BLUE,NUMBER,9));
+    cout << p3.hasColor(RED) << endl;
+    cout << p3.hasPlayable(Card(BLUE,SKIP), BLUE) << endl;
     
+    Game game;
+    game.start();
+    cout << game.currentColor << endl;
+    cout << game.isCardValid(dCard) << endl;
+
+
     return 0; 
 }
