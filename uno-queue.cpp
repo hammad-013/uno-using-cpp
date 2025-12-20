@@ -1,81 +1,81 @@
-#include "raylib.h"
+#include <iostream>
+#include <queue>
+#include <string>
+#include <cstdlib>
+#include <ctime>
+using namespace std;
 
-int main()
+struct Card
+ {
+    string color;
+    string value;
+};
+
+
+void initializeDeck(queue<Card> &deck)
 {
-    InitWindow(800, 600, "UNO Card Image Test");
-    SetTargetFPS(60);
-
-    Texture2D cardTexture = LoadTexture("assets/cards/red_5.png");
-
-    while (!WindowShouldClose())
+    string colors[4] = {"Red", "Blue", "Green", "Yellow"};
+    for (int i = 0; i < 4; i++)
+        {
+        string c = colors[i];
+        deck.push({c, "0"});
+        for (int n = 1; n <= 9; n++)
+        {
+            deck.push({c, to_string(n)});
+            deck.push({c, to_string(n)});
+  }
+        deck.push({c, "Skip"});
+        deck.push({c, "Skip"});
+        deck.push({c, "Reverse"});
+        deck.push({c, "Reverse"});
+        deck.push({c, "Draw2"});
+        deck.push({c, "Draw2"});
+    }
+    for (int i = 0; i < 4; i++)
     {
-        BeginDrawing();
-        ClearBackground(DARKGREEN);
+        deck.push({"Wild", "Wild"});
+        deck.push({"Wild", "+4"});
+    }
+}
 
-        DrawTexture(cardTexture, 350, 200, WHITE);
 
-        EndDrawing();
+Card drawCard(queue<Card> &deck)
+ {
+    Card c = deck.front();
+    deck.pop();
+    return c;
+}
+
+void shuffleDeck(queue<Card> &deck)
+{
+    Card tempArray[108];
+    int cont = 0;
+
+
+    while (!deck.empty())
+    {
+        tempArray[cont] = deck.front();
+        deck.pop();
+        cont++;
     }
 
-    UnloadTexture(cardTexture);
-    CloseWindow();
-    return 0;
-}
-string getCardImagePath(const Card& c)
-{
-    string path = "assets/cards/";
+    srand(time(NULL));
 
 
-    string color = c.color;
-    for (char &ch : color)
-        ch = tolower(ch);
-
-
-    if (color == "wild")
+    for (int i = 0; i < cont; i++)
     {
-        if (c.value == "+4")
-            return path + "wild_4.png";
-        else
-            return path + "wild_wild.png";
+        int r = rand() % cont;
+
+        Card temp = tempArray[i];
+        tempArray[i] = tempArray[r];
+        tempArray[r] = temp;
     }
 
 
-    path += color + "_";
-
-    string value = c.value;
-    for (char &ch : value)
-        ch = tolower(ch);
-
-    path += value + ".png";
-
-    return path;
-}
-string getCardImagePath(const Card& c)
-{
-    string path = "assets/cards/";
-
-
-    string color = c.color;
-    for (char &ch : color)
-        ch = tolower(ch);
-
-
-    if (color == "wild")
+    for (int i = 0; i < cont; i++)
     {
-        if (c.value == "+4")
-            return path + "wild_4.png";
-        else
-            return path + "wild_wild.png";
+        deck.push(tempArray[i]);
     }
-
-    // Normal cards
-    path += color + "_";
-
-    string value = c.value;
-    for (char &ch : value)
-        ch = tolower(ch);
-
-    path += value + ".png";
-
-    return path;
 }
+
+
