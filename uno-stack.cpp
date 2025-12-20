@@ -124,7 +124,6 @@ public:
             pop();
         }
     }
-
     void shuffle()
     {
         if (isEmpty() || size() == 1)
@@ -487,8 +486,7 @@ public:
 
         return drawPile.pop();
     }
-
-    void discard(string card)
+void discard(string card)
     {
         discardPile.push(card);
     }
