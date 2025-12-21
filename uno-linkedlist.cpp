@@ -539,11 +539,13 @@ int main() {
     
     bool gameEnded = false;
     
+    cout << "Red : 1    Green : 2    Blue : 3    Yellow : 4" << endl;
+
     while (!gameEnded) {
         Player& current = game.players[game.turnManager.getCurrentPlayerIndex()];
         current.printHand();
         cout << endl << current.getName() << "'s turn. Top card: "
-             << game.discardPile.getTopCard().toString() << endl;
+             << game.discardPile.getTopCard().toString() << "  Current color: " << game.discardPile.getTopCard().color + 1 << endl;
         
         int choice;
         cout << "Enter card index to play (or -1 to draw): ";
