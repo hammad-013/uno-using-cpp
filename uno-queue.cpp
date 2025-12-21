@@ -77,5 +77,81 @@ void shuffleDeck(queue<Card> &deck)
         deck.push(tempArray[i]);
     }
 }
+void dealInitialCards(queue<Card> players[], int numPlayers, queue<Card> &deck)
+ {
+    for (int r = 0; r < 7; r++)
+
+    {
+
+     for (int p = 0; p < numPlayers; p++)
+           {
+
+            players[p].push(drawCard(deck));
+        }
+    }
+}
+void showPlayerHand(queue<Card> &hand)
+ {
+    int n = hand.size();
+    cout << "Hand (" << n << "): ";
+    for (int i = 0; i < n; i++)
+        {
+        Card c = hand.front(); hand.pop();
+        cout << "[" << i << "] " << c.color << " " << c.value;
+        if (i + 1 < n) cout << " | ";
+        hand.push(c);
+    }
+    cout << endl;
+}
+
+
+string chooseWildColor()
+{
+    string col;
+    while (true)
+        {
+        cout << "Choose a color (R/B/G/Y): ";
+        cin >> col;
+        if (col == "R" || col == "B" || col == "G" || col == "Y"|| col == "r" || col == "b" || col == "g" || col == "y")
+            break;
+        cout << "wrong choice again enter correct "<<endl;
+    }
+    if(col=="r"||col=="R")
+    {
+        return "Red";
+        }
+    if(col=="b"||col=="B")
+    {
+        return "Blue";
+        }
+    if(col=="g"||col=="G")
+    {
+        return "Green";
+        }
+ else
+    return "Yellow";
+}
+
+
+bool isValidMove(Card &played, Card &top, string forcedColor)
+ {
+    if (played.value=="Wild" || played.value=="+4")
+    {
+        return true;
+        }
+    if (forcedColor!="" && played.color==forcedColor)
+    {
+        return true;
+        }
+    if (forcedColor=="" && (played.color==top.color || played.value==top.value))
+    {
+        return true;
+        }
+    return false;
+}
+
+
+
+
 
 
