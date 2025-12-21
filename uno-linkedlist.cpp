@@ -360,6 +360,18 @@ public:
         return hand.deleteAt(index);
     }
 
+    Card peekCard(int index) const {
+        Node<Card>* temp = hand.getHead();
+        for(int i = 0; i < index && temp != NULL; i++) {
+            temp = temp->getNext();
+        }
+        if(temp == NULL) {
+            cout << "Invalid Card Index" << endl;
+            return Card();
+        }
+        return temp->getData();
+    }
+
     void printHand() {
         Node<Card>* temp = hand.getHead();
         cout << name << "'s hand: ";
@@ -449,64 +461,124 @@ public:
                     return false;
                 }
     }
+
+    Card safeDraw() {
+        if (deck.isEmpty()) {
+            discardPile.resetIntoDeck(deck);
+            deck.shuffle();
+        }
+        return deck.drawCard();
+    }
+
+
+    bool playSpecialCard(Card playedCard) {
+            currentColor = playedCard.color == WILD ? currentColor : playedCard.color;
+            if(playedCard.type == REVERSE) {
+                cout << "Direction reversed!" << endl;
+                turnManager.reverseDirection();
+                return false;
+            }
+            else if(playedCard.type == SKIP) {
+                int skippedPlayer = turnManager.getNextPlayer();
+                cout << players[skippedPlayer].getName() << " is skipped!" << endl;
+                turnManager.skipNextPlayer();
+                return true;
+            }
+            else if(playedCard.type == DRAW_TWO) {
+                int nextPlayerIndex = turnManager.getNextPlayer();
+                Player& nextPlayer = players[nextPlayerIndex];
+                cout << nextPlayer.getName() << " draws 2 cards and is skipped!" << endl;
+                nextPlayer.addToHand(safeDraw());
+                nextPlayer.addToHand(safeDraw());
+                turnManager.skipNextPlayer();
+                return true;
+            }
+            else if(playedCard.type == WILD_COLOR) {
+                int colorChoice;
+                cout << "Choose a color (0-Red, 1-Green, 2-Blue, 3-Yellow): ";
+                cin >> colorChoice;
+                switch (colorChoice) {
+                    case 0: currentColor = RED; break;
+                    case 1: currentColor = GREEN; break;
+                    case 2: currentColor = BLUE; break;
+                    case 3: currentColor = YELLOW; break;
+                    default: cout << "Invalid color choice. Keeping previous color." << endl; break;
+                }
+                cout << "Color changed to " << (currentColor == RED ? "Red" : currentColor == GREEN ? "Green" : currentColor == BLUE ? "Blue" : "Yellow") << "!" << endl;
+                return false;
+            }
+            else if(playedCard.type == WILD_DRAW_FOUR) {
+                int colorChoice;
+                cout << "Choose a color (0-Red, 1-Green, 2-Blue, 3-Yellow): ";
+                cin >> colorChoice;
+                switch (colorChoice) {
+                    case 0: currentColor = RED; break;
+                    case 1: currentColor = GREEN; break;
+                    case 2: currentColor = BLUE; break;
+                    case 3: currentColor = YELLOW; break;
+                    default: cout << "Invalid color choice. Keeping previous color." << endl; break;
+                }
+                int nextPlayerIndex = turnManager.getNextPlayer();
+                Player& nextPlayer = players[nextPlayerIndex];
+
+                cout << nextPlayer.getName() << " draws 4 cards and is skipped!" << endl;
+                for(int i = 0; i < 4; i++) {
+                    nextPlayer.addToHand(safeDraw());
+                }
+                turnManager.skipNextPlayer();
+                return true;
+            }
+            return false;
+    }
 };
 
 int main() {
-     
-    Card c(RED,SKIP);
-    Card c2(YELLOW,NUMBER, 9);
-    cout << c.toString() << endl;
-    cout << c2.toString() << endl;
-    Deck d;
-    cout << d.isEmpty() << endl;
-    Card dCard = d.drawCard();
-    cout << dCard.toString() << endl;
-    d.shuffle();
-    dCard = d.drawCard();
-    cout << dCard.toString() << endl;
-
-    DiscardPile dPile;
-    dCard = dPile.getTopCard();
-    cout << dCard.toString() << endl;
-    dPile.addCard(Card(YELLOW,NUMBER,4));
-    dCard = dPile.getTopCard();
-    cout << dCard.toString() << endl;
-
-
-    Player p1("Ab Rehman", 1);
-    p1.addToHand(Card(BLUE,NUMBER,5));
-    p1.addToHand(Card(RED,SKIP));
-    p1.printHand();
-    Player p2("Ab", 2);
-    p2.addToHand(Card(BLUE,SKIP));
-    p2.addToHand(Card(RED,SKIP));
-    p2.printHand();
-
-    cout << p1.getName() << " Hand size: " << p1.getHandSize() << endl;
-
-    TurnManager t(4);
-    cout << t.getCurrentPlayerIndex() << endl;
-    cout << t.getNextPlayer() << endl;
-    t.moveToNextPlayer();
-    cout << t.getCurrentPlayerIndex() << endl;
-    cout << t.getNextPlayer() << endl;
-    t.skipNextPlayer();
-    cout << t.getCurrentPlayerIndex() << endl;
-    cout << t.getNextPlayer() << endl;
-    t.reverseDirection();
-    cout << t.getCurrentPlayerIndex() << endl;
-    cout << t.getNextPlayer() << endl;
-
-    Player p3;
-    p3.addToHand(Card(BLUE,NUMBER,9));
-    cout << p3.hasColor(RED) << endl;
-    cout << p3.hasPlayable(Card(BLUE,SKIP), BLUE) << endl;
-    
     Game game;
     game.start();
-    cout << game.currentColor << endl;
-    cout << game.isCardValid(dCard) << endl;
-
-
-    return 0; 
+    cout << "Top card: " << game.discardPile.getTopCard().toString() << endl;
+    
+    bool gameEnded = false;
+    
+    while (!gameEnded) {
+        Player& current = game.players[game.turnManager.getCurrentPlayerIndex()];
+        current.printHand();
+        cout << endl << current.getName() << "'s turn. Top card: "
+             << game.discardPile.getTopCard().toString() << endl;
+        
+        int choice;
+        cout << "Enter card index to play (or -1 to draw): ";
+        cin >> choice;
+        
+        if (choice == -1) {
+            Card drawn = game.safeDraw();
+            current.addToHand(drawn);
+            cout << "You drew: " << drawn.toString() << endl;
+            game.turnManager.moveToNextPlayer();
+        } else {
+            Card selected = current.peekCard(choice);
+            if (game.isCardValid(selected)) {
+                Card played = current.playCard(choice);
+                game.discardPile.addCard(played);
+                cout << current.getName() << " played: " << played.toString() << endl;
+                
+                bool turnWasHandled = game.playSpecialCard(played);
+                
+                if (!turnWasHandled) {
+                    game.turnManager.moveToNextPlayer();
+                }
+                
+                if (current.getHandSize() == 0) {
+                    cout << current.getName() << " wins!" << endl;
+                    gameEnded = true;
+                }
+            } else {
+                cout << "Invalid card! You draw one card." << endl;
+                Card drawn = game.safeDraw();
+                current.addToHand(drawn);
+                game.turnManager.moveToNextPlayer();
+            }
+        }
+    }
+    
+    return 0;
 }
