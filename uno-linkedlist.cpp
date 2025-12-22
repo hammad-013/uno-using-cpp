@@ -616,6 +616,8 @@ public:
         target->getData().addToHand(safeDraw());
       }
       skipNextPlayer();
+    } else if (pendingWildType == WILD_COLOR) {
+      moveToNextPlayer();
     }
 
     waitingForWildColor = false;
@@ -673,11 +675,14 @@ public:
       return true;
     }
 
-    if (!skipHandled) {
+    if (!skipHandled && !waitingForWildColor) {
       moveToNextPlayer();
     }
 
-    turnState = TURN_FINISHED;
+    if (!waitingForWildColor) {
+      turnState = TURN_FINISHED;
+    }
+
     return true;
   }
 
