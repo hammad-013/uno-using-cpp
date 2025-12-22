@@ -1,7 +1,6 @@
 #include <iostream>
 #include <string>
 #include <cstdlib>
-#include <cassert>
 #include <cstring>
 #include <ctime>
 #include <raylib.h>
@@ -158,9 +157,29 @@ public:
 
             push(selectedItem);
             while (!temp2.isEmpty())
+            {
+                temp1.push(temp2.pop());
+            }
+        }
+        if (!temp1.isEmpty())
+        {
+            push(temp1.pop());
+        }
+    }
+};
 
+class Card
+{
+public:
+    string fullName;
+
+    Card() : fullName("") {}
     Card(string name) : fullName(name) {}
+
     string getColor()
+    {
+        if (fullName == "Wild" || fullName == "Wild_Draw_4")
+        {
             return "Wild";
         }
         int underscorePos = -1;
@@ -176,6 +195,7 @@ public:
         if (underscorePos == -1)
         {
             return "";
+        }
 
         string color = "";
         for (int i = 0; i < underscorePos; i++)
