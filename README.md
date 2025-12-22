@@ -1,7 +1,7 @@
 # UNO Card Game in C++ Using Data Structures (with raylib GUI)
 
 ## Overview
-A console-based implementation of the classic UNO card game in C++, featuring multiple versions that demonstrate key data structures. The project is actively evolving with the addition of a graphical user interface (GUI) using raylib.
+An implementation of the classic UNO card game in C++, featuring multiple versions that demonstrate key data structures. The project is actively evolving with the addition of a graphical user interface (GUI) using raylib.
 
 ## Implementations
 
