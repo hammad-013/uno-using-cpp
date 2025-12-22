@@ -418,14 +418,14 @@ public:
 
 
 class Game {
-public:
-    bool isGameOver = false;
+    bool isGameOver;
     Color currentColor;
     Deck deck;
     DiscardPile discardPile;
     Player players[4]; // max 4 players
     TurnManager turnManager;
-    Game() : turnManager(4) {
+public:
+    Game() : turnManager(4), isGameOver(false) {
         for (int i = 0; i < 4; i++) {
             players[i] = Player("Player " + to_string(i + 1), i);
         }
@@ -536,129 +536,256 @@ public:
             }
             return false;
     }
-        void playTurn() {
-        if(deck.isEmpty()) {
-            discardPile.resetIntoDeck(deck);
-            deck.shuffle();
-        }
 
-        Player& currentPlayer = players[turnManager.getCurrentPlayerIndex()];
+    void printTurnHeader(Player& player) {
+    player.printHand();
+    cout << player.getName() << ", it's your turn. Top card is: "
+         << discardPile.getTopCard().toString()
+         << " | Current color: ";
 
+    switch(currentColor) {
+        case RED: cout << "Red"; break;
+        case GREEN: cout << "Green"; break;
+        case BLUE: cout << "Blue"; break;
+        case YELLOW: cout << "Yellow"; break;
+        case WILD: cout << "Wild"; break;
+    }
+    cout << endl;
+}
 
-            currentPlayer.printHand();
-            cout << currentPlayer.getName() << ", it's your turn. Top card is: " << discardPile.getTopCard().toString() << " | Current color: ";
+bool handleDraw(Player& currentPlayer) {
+    cout << currentPlayer.getName() << " chooses to draw a card." << endl;
 
-            switch(currentColor) {
-                case RED: cout << "Red"; break;
-                case GREEN: cout << "Green"; break;
-                case BLUE: cout << "Blue"; break;
-                case YELLOW: cout << "Yellow"; break;
-                case WILD: cout << "Wild"; break;
-            }
-            cout << endl;
+    Card drawnCard = safeDraw();
+    currentPlayer.addToHand(drawnCard);
 
+    cout << currentPlayer.getName() << " drew card: " << drawnCard.toString() << endl;
 
-            int choice;
-            bool validPlay = false;
-            bool wantsToDraw = false;
-            Card selectedCard;
-            while(!validPlay) {
-                cout << "Enter the index of the card to play: ";
-                cin >> choice;
+    if (!isCardValid(drawnCard)) {
+        cout << "Drawn card cannot be played. Turn ends." << endl;
+        turnManager.moveToNextPlayer();
+        return true;
+    }
 
-                if(choice == -1) {
-                    wantsToDraw = true;
-                    break;
-                }
+    cout << "drawn card is playable. Playing it automatically." << endl;
 
-                if(choice < 0 || choice >= currentPlayer.getHandSize()) {
-                    cout << "Invalid index. Try again." << endl;
-                    continue;
-                }
+    Card playedCard = currentPlayer.playCard(currentPlayer.getHandSize() - 1);
+    discardPile.addCard(playedCard);
 
-                selectedCard = currentPlayer.peekCard(choice);
-                validPlay = isCardValid(selectedCard);
-
-                if (validPlay && selectedCard.type == WILD_DRAW_FOUR) {
-                    if (currentPlayer.hasColor(currentColor)) {
-                        cout << "You cannot play Wild Draw Four while holding a " << (currentColor == RED ? "Red" : currentColor == GREEN ? "Green" : currentColor == BLUE ? "Blue" : "Yellow") << " card. Choose a different card." << endl;
-                        validPlay = false;
-                        continue;
-                    }
-                }
-
-            }
-
-            if(wantsToDraw) {
-                cout << currentPlayer.getName() << " chooses to draw a card." << endl;
-                Card drawnCard = safeDraw();
-                currentPlayer.addToHand(drawnCard);
-
-
-                cout << currentPlayer.getName() << " drew card: " << drawnCard.toString() << endl;
-                if (isCardValid(drawnCard)) {
-                    cout << "drawn card is playable. Playing it automatically." << endl;
-                    Card playedCard = currentPlayer.playCard(currentPlayer.getHandSize() - 1);
-          
-                    discardPile.addCard(playedCard);
-
-                    bool turnEndedEarly = playSpecialCard(playedCard);
-                    if(turnEndedEarly) {
-                        if(currentPlayer.getHandSize() == 0) {
-                            isGameOver = true;
-                        }
-                        return;
-                    }
-                    }
-                    else {
-                        cout << "Drawn card cannot be played. Turn ends." << endl;
-                    }
-
-                turnManager.moveToNextPlayer();
-                return;
-            }
-
-            Card playedCard = currentPlayer.playCard(choice);
-
-            discardPile.addCard(playedCard);
-
-            bool turnEndedEarly = playSpecialCard(playedCard);
-            if(turnEndedEarly) {
-                if(currentPlayer.getHandSize() == 0) {
-                    isGameOver = true;
-                }
-                return;
-            }
-        if(currentPlayer.getHandSize() == 0) {
+    bool turnEndedEarly = playSpecialCard(playedCard);
+    if (turnEndedEarly) {
+        if (currentPlayer.getHandSize() == 0) {
             isGameOver = true;
         }
-        else {
-            turnManager.moveToNextPlayer();
+        return true;
+    }
+
+    turnManager.moveToNextPlayer();
+    return true;
+}
+
+bool handlePlay(Player& currentPlayer, int choice) {
+    Card playedCard = currentPlayer.playCard(choice);
+    discardPile.addCard(playedCard);
+
+    bool turnEndedEarly = playSpecialCard(playedCard);
+    if (turnEndedEarly) {
+        if (currentPlayer.getHandSize() == 0) {
+            isGameOver = true;
+        }
+        return true;
+    }
+
+    if (currentPlayer.getHandSize() == 0) {
+        isGameOver = true;
+    } else {
+        turnManager.moveToNextPlayer();
+    }
+
+    return true;
+}
+
+void playTurn() {
+    if(deck.isEmpty()) {
+        discardPile.resetIntoDeck(deck);
+        deck.shuffle();
+    }
+
+    Player& currentPlayer = players[turnManager.getCurrentPlayerIndex()];
+    printTurnHeader(currentPlayer);
+
+    int choice;
+    bool validPlay = false;
+    bool wantsToDraw = false;
+    Card selectedCard;
+
+    while(!validPlay) {
+        cout << "Enter the index of the card to play: ";
+        cin >> choice;
+
+        if(choice == -1) {
+            wantsToDraw = true;
+            break;
+        }
+
+        if(choice < 0 || choice >= currentPlayer.getHandSize()) {
+            cout << "Invalid index. Try again." << endl;
+            continue;
+        }
+
+        selectedCard = currentPlayer.peekCard(choice);
+        validPlay = isCardValid(selectedCard);
+
+        if (validPlay && selectedCard.type == WILD_DRAW_FOUR &&
+            currentPlayer.hasColor(currentColor)) {
+
+            cout << "You cannot play Wild Draw Four while holding a "
+                 << (currentColor == RED ? "Red" :
+                     currentColor == GREEN ? "Green" :
+                     currentColor == BLUE ? "Blue" : "Yellow")
+                 << " card. Choose a different card." << endl;
+
+            validPlay = false;
         }
     }
+
+    if (wantsToDraw) {
+        handleDraw(currentPlayer);
+        return;
+    }
+
+    handlePlay(currentPlayer, choice);
+}
+
+    // void playTurn() {
+    //     if(deck.isEmpty()) {
+    //         discardPile.resetIntoDeck(deck);
+    //         deck.shuffle();
+    //     }
+
+    //     Player& currentPlayer = players[turnManager.getCurrentPlayerIndex()];
+
+
+    //         currentPlayer.printHand();
+    //         cout << currentPlayer.getName() << ", it's your turn. Top card is: " << discardPile.getTopCard().toString() << " | Current color: ";
+
+    //         switch(currentColor) {
+    //             case RED: cout << "Red"; break;
+    //             case GREEN: cout << "Green"; break;
+    //             case BLUE: cout << "Blue"; break;
+    //             case YELLOW: cout << "Yellow"; break;
+    //             case WILD: cout << "Wild"; break;
+    //         }
+    //         cout << endl;
+
+
+    //         int choice;
+    //         bool validPlay = false;
+    //         bool wantsToDraw = false;
+    //         Card selectedCard;
+    //         while(!validPlay) {
+    //             cout << "Enter the index of the card to play: ";
+    //             cin >> choice;
+
+    //             if(choice == -1) {
+    //                 wantsToDraw = true;
+    //                 break;
+    //             }
+
+    //             if(choice < 0 || choice >= currentPlayer.getHandSize()) {
+    //                 cout << "Invalid index. Try again." << endl;
+    //                 continue;
+    //             }
+
+    //             selectedCard = currentPlayer.peekCard(choice);
+    //             validPlay = isCardValid(selectedCard);
+
+    //             if (validPlay && selectedCard.type == WILD_DRAW_FOUR) {
+    //                 if (currentPlayer.hasColor(currentColor)) {
+    //                     cout << "You cannot play Wild Draw Four while holding a " << (currentColor == RED ? "Red" : currentColor == GREEN ? "Green" : currentColor == BLUE ? "Blue" : "Yellow") << " card. Choose a different card." << endl;
+    //                     validPlay = false;
+    //                     continue;
+    //                 }
+    //             }
+
+    //         }
+
+    //         if(wantsToDraw) {
+    //             cout << currentPlayer.getName() << " chooses to draw a card." << endl;
+    //             Card drawnCard = safeDraw();
+    //             currentPlayer.addToHand(drawnCard);
+
+
+    //             cout << currentPlayer.getName() << " drew card: " << drawnCard.toString() << endl;
+    //             if (isCardValid(drawnCard)) {
+    //                 cout << "drawn card is playable. Playing it automatically." << endl;
+    //                 Card playedCard = currentPlayer.playCard(currentPlayer.getHandSize() - 1);
+          
+    //                 discardPile.addCard(playedCard);
+
+    //                 bool turnEndedEarly = playSpecialCard(playedCard);
+    //                 if(turnEndedEarly) {
+    //                     if(currentPlayer.getHandSize() == 0) {
+    //                         isGameOver = true;
+    //                     }
+    //                     return;
+    //                 }
+    //                 }
+    //                 else {
+    //                     cout << "Drawn card cannot be played. Turn ends." << endl;
+    //                 }
+
+    //             turnManager.moveToNextPlayer();
+    //             return;
+    //         }
+
+    //         Card playedCard = currentPlayer.playCard(choice);
+
+    //         discardPile.addCard(playedCard);
+
+    //         bool turnEndedEarly = playSpecialCard(playedCard);
+    //         if(turnEndedEarly) {
+    //             if(currentPlayer.getHandSize() == 0) {
+    //                 isGameOver = true;
+    //             }
+    //             return;
+    //         }
+    //     if(currentPlayer.getHandSize() == 0) {
+    //         isGameOver = true;
+    //     }
+    //     else {
+    //         turnManager.moveToNextPlayer();
+    //     }
+    // }
+
     bool gameOver() const {
         return isGameOver;
     }
-};
 
-int main() {
-Game game;
-    game.start();
+    void run() {
+        start();
     
-    cout << "=== UNO Game Started ===" << endl;
+    cout << ">>>>>  UNO  <<<<<" << endl;
     cout << "Each player has been dealt 7 cards." << endl;
     
-    while (!game.gameOver()) {
-        game.playTurn();
+    while (!gameOver()) {
+        playTurn();
     }
 
     for (int i = 0; i < 4; i++) {
-        if (game.getPlayerHandSize(i) == 0) {
+        if (getPlayerHandSize(i) == 0) {
             cout << "Player " << (i + 1) << " wins the game!" << endl;
             break;
         }
     }
     
     cout << "Thanks for playing UNO!" << endl;
+    }
+};
+
+
+int main() {
+    Game game;
+    game.run();
     return 0;
 }
