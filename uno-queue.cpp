@@ -231,7 +231,11 @@ void playGame()
             showPlayerHand(players[cur]);
 
         }
-
+           if (choice < 0 || choice >= handSize)
+            {
+            cout << "Invalid choice"<<endl;
+            continue;
+        }
 
         queue<Card> tmp;
         Card play;
