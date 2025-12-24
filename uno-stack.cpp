@@ -525,7 +525,6 @@ private:
     bool clockwise;
     string currentColor;
     bool gameOver;
-    int skipNext;
 
     Player getPlayerAt(int index)
     {
@@ -591,10 +590,9 @@ private:
 
 public:
     Game() : currentPlayerIndex(0), totalPlayers(4), clockwise(true),
-             currentColor(""), gameOver(false), skipNext(0)
+         currentColor(""), gameOver(false)
     {
-        for (int i = 0; i < 4; i++)
-        {
+        for (int i = 0; i < 4; i++) {
             players.push(Player(i));
         }
     }
@@ -611,6 +609,8 @@ public:
     void startGame()
     {
         deck.createDeck();
+
+       // pendingDrawCards = 0;
         for (int i = 0; i < totalPlayers; i++)
         {
             Player p = getPlayerAt(i);
@@ -682,14 +682,24 @@ public:
         }
 
         deck.discard(playedCard);
+
+        // Update player first before checking hand size
+        updatePlayerAt(currentPlayerIndex, currentPlayer);
+
         message = "Player " + to_string(currentPlayer.id) + " played: " + playedCard;
 
         if (currentPlayer.getHandSize() == 0)
         {
             gameOver = true;
             message = "Player " + to_string(currentPlayer.id) + " WINS!";
-            updatePlayerAt(currentPlayerIndex, currentPlayer);
             return true;
+        }
+
+        // Check if player has exactly 1 card left after playing
+        Player updatedPlayer = getPlayerAt(currentPlayerIndex);
+        if (updatedPlayer.getHandSize() == 1)
+        {
+            message = "Player " + to_string(currentPlayer.id) + " played: " + playedCard + " - UNO!";
         }
 
         if (!played.isWild())
@@ -698,9 +708,9 @@ public:
         }
 
         handleCardEffect(played, currentPlayer);
-        updatePlayerAt(currentPlayerIndex, currentPlayer);
 
         return true;
+
     }
 
     void handleCardEffect(Card played, Player& currentPlayer)
@@ -761,8 +771,8 @@ public:
         currentPlayer.drawCard(deck.drawCard());
         updatePlayerAt(currentPlayerIndex, currentPlayer);
     }
-};
 
+};
 // GUI Button structure using stack-based storage
 class Button
 {
@@ -845,6 +855,7 @@ private:
     bool waitingForColorChoice;
     string pendingWildCard;
     Rectangle playButton;
+
     // Card positions using stack
     Stack<CardRect> currentPlayerCardRects;
 
@@ -972,7 +983,7 @@ private:
     }
 
 public:
-    unoGUI(Game* g, int width = 1280, int height = 720)
+    unoGUI(Game* g, int width = 1400, int height = 900)
     {
         game = g;
         screenWidth = width;
@@ -1136,7 +1147,6 @@ public:
 
         Player currentPlayer = game->getPlayerAtPublic(game->getCurrentPlayerIndex());
         Vector2 mouse = GetMousePosition();
-
         // Update hovered card
         hoveredCardIndex = -1;
         Stack<CardRect> tempRects = currentPlayerCardRects;
@@ -1171,17 +1181,16 @@ public:
             }
         }
 
-        // Draw button
+
+        Card topCard(Card(game->getTopDiscard()));
         Button drawBtn(screenWidth - 150, screenHeight - 100, 120, 40, "DRAW");
-        if (drawBtn.isClicked())
-        {
+        if (drawBtn.isClicked()) {
             game->drawCardForCurrentPlayer();
             game->nextTurn();
             message = "Drew a card. Next player's turn.";
             messageTimer = 2.0f;
             selectedCardIndex = -1;
         }
-
         // Play button
         Button playBtn(screenWidth - 150, screenHeight - 160, 120, 40, "PLAY");
         if (playBtn.isClicked() && selectedCardIndex >= 0)
@@ -1220,6 +1229,7 @@ public:
     void drawGameScreen()
     {
 
+
         // Draw current color indicator
         DrawText("Color:", screenWidth - 300, 20, 20, WHITE);
         Color currentCol = getColorFromString(game->getCurrentColor());
@@ -1229,7 +1239,9 @@ public:
         // Draw direction
         string dir = game->getClockwise() ? "Clockwise" : "Counter-CW";
         DrawText(dir.c_str(), screenWidth - 140, 20, 20, WHITE);
-
+        Player currentPlayer = game->getPlayerAtPublic(game->getCurrentPlayerIndex());
+        string current_player = "Current Player: " + to_string(currentPlayer.id);
+        DrawText(current_player.c_str(), screenWidth - 600, 20, 20, WHITE);
         // Draw center area (deck and discard pile)
         drawCenterArea();
 
@@ -1248,13 +1260,11 @@ public:
             Button playBtn(screenWidth - 150, screenHeight - 160, 120, 40, "PLAY");
             playBtn.draw();
         }
-
-        // Draw message
         if (messageTimer > 0)
         {
             int msgWidth = 400;
             int msgHeight = 60;
-            int msgX = (screenWidth - msgWidth) / 2;
+            int msgX = 100;
             int msgY = 100;
 
             DrawRectangle(msgX, msgY, msgWidth, msgHeight, (Color){0, 0, 0, 200});
@@ -1353,25 +1363,68 @@ public:
         }
     }
     void drawCurrentPlayerHand()
+{
+    Player currentPlayer = game->getPlayerAtPublic(game->getCurrentPlayerIndex());
+
+    // Clear previous card rectangles
+    currentPlayerCardRects.clear();
+
+    if (currentPlayer.getHandSize() == 0)
+        return;
+
+    // Dynamic card sizing based on hand size
+    int cardWidth, cardHeight, spacing;
+    int handSize = currentPlayer.getHandSize();
+    bool twoRows = false;
+
+    if (handSize <= 7)
     {
-        Player currentPlayer = game->getPlayerAtPublic(game->getCurrentPlayerIndex());
+        // Normal size for 7 or fewer cards
+        cardWidth = 160;
+        cardHeight = 220;
+        spacing = 120;
+    }
+    else if (handSize <= 10)
+    {
+        // Slightly smaller for 8-10 cards
+        cardWidth = 120;
+        cardHeight = 165;
+        spacing = 90;
+    }
+    else if (handSize <= 15)
+    {
+        // Smaller for 11-15 cards
+        cardWidth = 90;
+        cardHeight = 124;
+        spacing = 70;
+    }
+    else if (handSize <= 20)
+    {
+        // Very small for 16-20 cards
+        cardWidth = 70;
+        cardHeight = 96;
+        spacing = 55;
+    }
+    else
+    {
+        // Two rows for 21+ cards
+        twoRows = true;
+        cardWidth = 70;
+        cardHeight = 96;
+        spacing = 55;
+    }
 
-        // Clear previous card rectangles
-        currentPlayerCardRects.clear();
+    // Draw label
+    string label = "Your Hand (Player " + to_string(currentPlayer.id) + ") - " +
+                  to_string(currentPlayer.getHandSize()) + " cards";
 
-        if (currentPlayer.getHandSize() == 0)
-            return;
-
-        int cardWidth = 160;
-        int cardHeight = 220;
-        int spacing = 120;
-        int totalWidth = currentPlayer.getHandSize() * spacing;
+    if (!twoRows)
+    {
+        // Single row display
+        int totalWidth = handSize * spacing;
         int startX = (screenWidth - totalWidth) / 2;
-        int startY = screenHeight - 260;
+        int startY = screenHeight - cardHeight - 40;
 
-        // Draw label
-        string label = "Your Hand (Player " + to_string(currentPlayer.id) + ") - " +
-                      to_string(currentPlayer.getHandSize()) + " cards";
         DrawText(label.c_str(), startX, startY - 30, 18, WHITE);
 
         // Draw cards
@@ -1398,7 +1451,75 @@ public:
             DrawText(indexStr.c_str(), cardX + 5, cardY + cardHeight + 5, 14, WHITE);
         }
     }
+    else
+    {
+        // Two rows display
+        int cardsPerRow = (handSize + 1) / 2;  // Split evenly, top row gets extra if odd
+        int bottomRowCards = handSize - cardsPerRow;
 
+        // Top row
+        int topRowWidth = cardsPerRow * spacing;
+        int topStartX = (screenWidth - topRowWidth) / 2;
+        int topStartY = screenHeight - (cardHeight * 2) - 60;
+
+        // Bottom row
+        int bottomRowWidth = bottomRowCards * spacing;
+        int bottomStartX = (screenWidth - bottomRowWidth) / 2;
+        int bottomStartY = screenHeight - cardHeight - 40;
+
+        // Draw label above both rows
+        DrawText(label.c_str(), screenWidth / 2 - 150, topStartY - 30, 18, WHITE);
+
+        // Draw top row cards
+        for (int i = 0; i < cardsPerRow; i++)
+        {
+            string cardName = currentPlayer.hand.getCardAt(i);
+            int cardX = topStartX + i * spacing;
+            int cardY = topStartY;
+
+            // Highlight if hovered or selected
+            bool isHighlighted = (i == hoveredCardIndex || i == selectedCardIndex);
+            if (isHighlighted)
+            {
+                cardY -= 15;
+            }
+
+            drawCard(cardName, cardX, cardY, cardWidth, cardHeight, isHighlighted);
+
+            // Store card rectangle for click detection
+            currentPlayerCardRects.push(CardRect(cardX, cardY, cardWidth, cardHeight, cardName));
+
+            // Draw card index
+            string indexStr = to_string(i);
+            DrawText(indexStr.c_str(), cardX + 5, cardY + cardHeight + 5, 14, WHITE);
+        }
+
+        // Draw bottom row cards
+        for (int i = 0; i < bottomRowCards; i++)
+        {
+            int actualIndex = cardsPerRow + i;
+            string cardName = currentPlayer.hand.getCardAt(actualIndex);
+            int cardX = bottomStartX + i * spacing;
+            int cardY = bottomStartY;
+
+            // Highlight if hovered or selected
+            bool isHighlighted = (actualIndex == hoveredCardIndex || actualIndex == selectedCardIndex);
+            if (isHighlighted)
+            {
+                cardY -= 15;
+            }
+
+            drawCard(cardName, cardX, cardY, cardWidth, cardHeight, isHighlighted);
+
+            // Store card rectangle for click detection
+            currentPlayerCardRects.push(CardRect(cardX, cardY, cardWidth, cardHeight, cardName));
+
+            // Draw card index
+            string indexStr = to_string(actualIndex);
+            DrawText(indexStr.c_str(), cardX + 5, cardY + cardHeight + 5, 14, WHITE);
+        }
+    }
+}
     void updateColorSelectionScreen()
     {
         // Color selection buttons
