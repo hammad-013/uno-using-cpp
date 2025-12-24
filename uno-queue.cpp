@@ -149,6 +149,48 @@ bool isValidMove(Card &played, Card &top, string forcedColor)
         }
     return false;
 }
+void winnercondition(queue<Card> players[], int totalplayer, queue<Card> &deck)
+{
+    bool found=false;
+    for(int i=0;i<totalplayer;i++)
+        {
+        if(players[i].empty())
+        {
+            cout<<"Congratulations! Player "<<i+1<<" wins the match!"<<endl;
+            found=true;
+        }
+    }
+    if(found)
+     exit(0);
+
+    if(deck.empty())
+        {
+        int minCards=players[0].size();
+    int winner=0;
+     bool tie=false;
+        for(int i=1;i<totalplayer;i++)
+            {
+            if(players[i].size()<minCards)
+            {
+                minCards=players[i].size();
+          winner=i;
+         tie=false;
+         }
+            else if(players[i].size()==minCards)
+
+        tie=true;
+        }
+        cout<<endl;
+        cout<<"Deck is empty!"<<endl;
+        if(tie)
+            cout<<"Match draw!"<<endl;
+
+        else
+            cout<<"Congratulations! Player "<<winner+1<<" wins with fewer cards!"<<endl;
+        exit(0);
+    }
+}
+
 void playGame()
  {
     int totalplayer = 2;
@@ -179,12 +221,12 @@ void playGame()
 
     int cur = 0;
     string forcedColor = "";
-    int direction = 1;
+
 
     while (true)
         {
 
-
+         winnercondition(players, totalplayer, deck);
         cout << "Player " << cur + 1 << " turn:" << endl;
         showPlayerHand(players[cur]);
 
