@@ -1,1 +1,4 @@
 *.exe
+*.dll
+*.bat
+assets/
