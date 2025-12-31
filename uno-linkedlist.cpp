@@ -1,3 +1,4 @@
+#include "raylib.h"
 #include <algorithm>
 #include <iostream>
 #include <random>
@@ -5,1181 +6,1043 @@
 #include <unordered_map>
 #include <vector>
 
-#include "raylib.h"
-
 using namespace std;
 
 mt19937 rng(random_device{}());
 
 int randomValue(int a, int b) {
-  uniform_int_distribution<int> dist(a, b);
-  return dist(rng);
+    uniform_int_distribution<int> dist(a, b);
+    return dist(rng);
 }
 
 const int CARD_WIDTH = 110;
 const int CARD_HEIGHT = 160;
 
-template <typename T> class Node {
-  T data;
-  Node<T> *next;
-  Node<T> *prev;
+template <typename T>
+class Node {
+    T data;
+    Node<T>* next;
+    Node<T>* prev;
 
 public:
-  Node(T d) : data(d), next(NULL), prev(NULL) {}
+    Node(T d) : data(d), next(nullptr), prev(nullptr) {}
 
-  T &getData() { return data; }
-  void setData(T data) { this->data = data; }
-
-  Node<T> *getNext() { return next; }
-  Node<T> *getPrev() { return prev; }
-
-  void setNext(Node<T> *next) { this->next = next; }
-  void setPrev(Node<T> *prev) { this->prev = prev; }
+    T& getData() { return data; }
+    void setData(T data) { this->data = data; }
+    Node<T>* getNext() { return next; }
+    Node<T>* getPrev() { return prev; }
+    void setNext(Node<T>* next) { this->next = next; }
+    void setPrev(Node<T>* prev) { this->prev = prev; }
 };
 
-template <typename T> class LinkedList {
-  Node<T> *head;
-  Node<T> *tail;
+template <typename T>
+class LinkedList {
+    Node<T>* head;
+    Node<T>* tail;
 
 public:
-  LinkedList() {
-    head = nullptr;
-    tail = nullptr;
-  }
+    LinkedList() : head(nullptr), tail(nullptr) {}
 
-  bool isEmpty() const { return head == nullptr; }
-
-  void insertFront(T val) {
-    Node<T> *newNode = new Node<T>(val);
-
-    if (isEmpty()) {
-      head = tail = newNode;
-      head->setNext(head);
-      head->setPrev(head);
-      return;
+    LinkedList(const LinkedList& other) : head(nullptr), tail(nullptr) {
+        if (other.isEmpty()) return;
+        Node<T>* current = other.head;
+        do {
+            insertEnd(current->getData());
+            current = current->getNext();
+        } while (current != other.head);
     }
 
-    newNode->setNext(head);
-    newNode->setPrev(tail);
-
-    head->setPrev(newNode);
-    tail->setNext(newNode);
-
-    head = newNode;
-  }
-
-  void insertEnd(T val) {
-    Node<T> *newNode = new Node<T>(val);
-
-    if (isEmpty()) {
-      head = tail = newNode;
-      head->setNext(head);
-      head->setPrev(head);
-      return;
+    LinkedList& operator=(const LinkedList& other) {
+        if (this == &other) return *this;
+        clear();
+        if (!other.isEmpty()) {
+            Node<T>* current = other.head;
+            do {
+                insertEnd(current->getData());
+                current = current->getNext();
+            } while (current != other.head);
+        }
+        return *this;
     }
 
-    newNode->setPrev(tail);
-    newNode->setNext(head);
+    bool isEmpty() const { return head == nullptr; }
 
-    tail->setNext(newNode);
-    head->setPrev(newNode);
-
-    tail = newNode;
-  }
-
-  void deleteFront() {
-    if (isEmpty())
-      return;
-
-    if (head == tail) {
-      delete head;
-      head = tail = NULL;
-      return;
+    void insertFront(T val) {
+        Node<T>* newNode = new Node<T>(val);
+        if (isEmpty()) {
+            head = tail = newNode;
+            head->setNext(head);
+            head->setPrev(head);
+            return;
+        }
+        newNode->setNext(head);
+        newNode->setPrev(tail);
+        head->setPrev(newNode);
+        tail->setNext(newNode);
+        head = newNode;
     }
 
-    Node<T> *temp = head;
-    head = head->getNext();
-
-    head->setPrev(tail);
-    tail->setNext(head);
-
-    delete temp;
-  }
-
-  void deleteEnd() {
-    if (isEmpty())
-      return;
-
-    if (head == tail) {
-      delete head;
-      head = tail = NULL;
-      return;
+    void insertEnd(T val) {
+        Node<T>* newNode = new Node<T>(val);
+        if (isEmpty()) {
+            head = tail = newNode;
+            head->setNext(head);
+            head->setPrev(head);
+            return;
+        }
+        newNode->setPrev(tail);
+        newNode->setNext(head);
+        tail->setNext(newNode);
+        head->setPrev(newNode);
+        tail = newNode;
     }
 
-    Node<T> *temp = tail;
-    tail = tail->getPrev();
-
-    tail->setNext(head);
-    head->setPrev(tail);
-
-    delete temp;
-  }
-
-  T deleteAt(int pos) {
-    if (head == NULL) {
-      cout << "List is empty" << endl;
-      return T();
-    }
-    if (pos < 0) {
-      cout << "Invalid Position" << endl;
-      return T();
-    }
-    if (pos == 0) {
-      T toReturn = head->getData();
-      deleteFront();
-      return toReturn;
-    }
-
-    Node<T> *temp = head;
-    int count = 0;
-
-    while (count < pos - 1) {
-      temp = temp->getNext();
-      count++;
-      if (temp == head) {
-        cout << "Position out of range" << endl;
-        return T();
-      }
-    }
-
-    Node<T> *toDelete = temp->getNext();
-    if (toDelete == head) {
-      cout << "Position out of range" << endl;
-      return T();
-    }
-
-    T toReturn = toDelete->getData();
-
-    temp->setNext(toDelete->getNext());
-
-    if (toDelete->getNext() != NULL) {
-      toDelete->getNext()->setPrev(temp);
-    }
-
-    if (toDelete == tail) {
-      tail = temp;
-      if (head != NULL) {
+    void deleteFront() {
+        if (isEmpty()) return;
+        if (head == tail) {
+            delete head;
+            head = tail = nullptr;
+            return;
+        }
+        Node<T>* temp = head;
+        head = head->getNext();
         head->setPrev(tail);
-      }
+        tail->setNext(head);
+        delete temp;
     }
 
-    if (toDelete->getNext() == toDelete) {
-      head = tail = NULL;
+    void deleteEnd() {
+        if (isEmpty()) return;
+        if (head == tail) {
+            delete head;
+            head = tail = nullptr;
+            return;
+        }
+        Node<T>* temp = tail;
+        tail = tail->getPrev();
+        tail->setNext(head);
+        head->setPrev(tail);
+        delete temp;
     }
 
-    toDelete->setNext(NULL);
-    toDelete->setPrev(NULL);
+    T deleteAt(int pos) {
+        if (head == nullptr) {
+            cout << "List is empty" << endl;
+            return T();
+        }
+        if (pos < 0) {
+            cout << "Invalid Position" << endl;
+            return T();
+        }
+        if (pos == 0) {
+            T toReturn = head->getData();
+            deleteFront();
+            return toReturn;
+        }
 
-    delete toDelete;
-    return toReturn;
-  }
+        Node<T>* temp = head;
+        int count = 0;
+        while (count < pos - 1) {
+            temp = temp->getNext();
+            count++;
+            if (temp == head) {
+                cout << "Position out of range" << endl;
+                return T();
+            }
+        }
 
-  Node<T> *getHead() const { return head; }
+        Node<T>* toDelete = temp->getNext();
+        if (toDelete == head) {
+            cout << "Position out of range" << endl;
+            return T();
+        }
 
-  Node<T> *getTail() const { return tail; }
+        T toReturn = toDelete->getData();
+        temp->setNext(toDelete->getNext());
+        if (toDelete->getNext() != nullptr) {
+            toDelete->getNext()->setPrev(temp);
+        }
+        if (toDelete == tail) {
+            tail = temp;
+            if (head != nullptr) {
+                head->setPrev(tail);
+            }
+        }
+        if (toDelete->getNext() == toDelete) {
+            head = tail = nullptr;
+        }
 
-  ~LinkedList() {
-    if (!head)
-      return;
-
-    tail->setNext(NULL);
-    head->setPrev(NULL);
-
-    while (head != NULL) {
-      Node<T> *temp = head;
-      head = head->getNext();
-      delete temp;
+        toDelete->setNext(nullptr);
+        toDelete->setPrev(nullptr);
+        delete toDelete;
+        return toReturn;
     }
-  }
+
+    Node<T>* getHead() const { return head; }
+    Node<T>* getTail() const { return tail; }
+
+    ~LinkedList() { clear(); }
+
+    void clear() {
+        if (!head) return;
+        tail->setNext(nullptr);
+        head->setPrev(nullptr);
+        Node<T>* current = head;
+        while (current != nullptr) {
+            Node<T>* next = current->getNext();
+            delete current;
+            current = next;
+        }
+        head = nullptr;
+        tail = nullptr;
+    }
 };
 
 enum CardColor { CARD_RED, CARD_GREEN, CARD_BLUE, CARD_YELLOW, WILD };
-
 enum CardType { NUMBER, SKIP, REVERSE, DRAW_TWO, WILD_COLOR, WILD_DRAW_FOUR };
-enum TurnState { WAITING_FOR_INPUT, TURN_FINISHED, GAME_OVER };
+enum TurnState { WAITING_FOR_INPUT, WAITING_FOR_WILD_COLOR, TURN_FINISHED, GAME_OVER };
 enum Screen { SCREEN_MAIN_MENU, SCREEN_GAMEPLAY, SCREEN_EXIT };
 
 class Card {
 public:
-  CardColor color;
-  CardType type;
-  int number; // valid only if card is
+    CardColor color;
+    CardType type;
+    int number;
 
-  Card() : color(WILD), type(WILD_COLOR), number(-1) {}
-  Card(CardColor c, CardType t, int n = -1) : color(c), type(t), number(n) {}
-  string getColorString() const {
-    switch (color) {
-    case CARD_RED:
-      return "Red";
-    case CARD_GREEN:
-      return "Green";
-    case CARD_BLUE:
-      return "Blue";
-    case CARD_YELLOW:
-      return "Yellow";
-    case WILD:
-      return "Wild";
-    default:
-      return "Unknown";
-    }
-  }
+    Card() : color(WILD), type(WILD_COLOR), number(-1) {}
+    Card(CardColor c, CardType t, int n = -1) : color(c), type(t), number(n) {}
 
-  string toString() const {
-    string colorStr;
-    switch (color) {
-    case CARD_RED:
-      colorStr = "Red";
-      break;
-    case CARD_GREEN:
-      colorStr = "Green";
-      break;
-    case CARD_BLUE:
-      colorStr = "Blue";
-      break;
-    case CARD_YELLOW:
-      colorStr = "Yellow";
-      break;
-    case WILD:
-      colorStr = "Wild";
-      break;
+    string getColorString() const {
+        switch (color) {
+            case CARD_RED:    return "Red";
+            case CARD_GREEN:  return "Green";
+            case CARD_BLUE:   return "Blue";
+            case CARD_YELLOW: return "Yellow";
+            case WILD:        return "Wild";
+            default:          return "Unknown";
+        }
     }
 
-    string typeStr;
-    switch (type) {
-    case NUMBER:
-      typeStr = to_string(number);
-      break;
-    case SKIP:
-      typeStr = "Skip";
-      break;
-    case REVERSE:
-      typeStr = "Reverse";
-      break;
-    case DRAW_TWO:
-      typeStr = "Draw Two";
-      break;
-    case WILD_COLOR:
-      typeStr = "Wild Color";
-      break;
-    case WILD_DRAW_FOUR:
-      typeStr = "Wild Draw Four";
-      break;
+    string toString() const {
+        string colorStr = getColorString();
+        string typeStr;
+        switch (type) {
+            case NUMBER:         typeStr = to_string(number); break;
+            case SKIP:           typeStr = "Skip"; break;
+            case REVERSE:        typeStr = "Reverse"; break;
+            case DRAW_TWO:       typeStr = "Draw Two"; break;
+            case WILD_COLOR:     typeStr = "Wild Color"; break;
+            case WILD_DRAW_FOUR: typeStr = "Wild Draw Four"; break;
+        }
+        return colorStr + " " + typeStr;
     }
-
-    return colorStr + " " + typeStr;
-  }
 };
 
 string GetCardTexturePath(Card card) {
-  if (card.type == WILD_COLOR)
-    return "assets/Wild.jpg";
-  if (card.type == WILD_DRAW_FOUR)
-    return "assets/Wild_Draw_4.jpg";
+    if (card.type == WILD_COLOR)     return "assets/Wild.jpg";
+    if (card.type == WILD_DRAW_FOUR) return "assets/Wild_Draw_4.jpg";
 
-  string color;
-  switch (card.color) {
-  case CARD_RED:
-    color = "Red";
-    break;
-  case CARD_BLUE:
-    color = "Blue";
-    break;
-  case CARD_GREEN:
-    color = "Green";
-    break;
-  case CARD_YELLOW:
-    color = "Yellow";
-    break;
-  default:
-    break;
-  }
+    string color;
+    switch (card.color) {
+        case CARD_RED:    color = "Red";    break;
+        case CARD_BLUE:   color = "Blue";   break;
+        case CARD_GREEN:  color = "Green";  break;
+        case CARD_YELLOW: color = "Yellow"; break;
+        default: break;
+    }
 
-  string value;
-  switch (card.type) {
-  case NUMBER:
-    value = to_string(card.number);
-    break;
-  case SKIP:
-    value = "Skip";
-    break;
-  case REVERSE:
-    value = "Reverse";
-    break;
-  case DRAW_TWO:
-    value = "Draw_2";
-    break;
-  default:
-    break;
-  }
+    string value;
+    switch (card.type) {
+        case NUMBER:   value = to_string(card.number); break;
+        case SKIP:     value = "Skip";     break;
+        case REVERSE:  value = "Reverse";  break;
+        case DRAW_TWO: value = "Draw_2";   break;
+        default: break;
+    }
 
-  return "assets/" + color + "_" + value + ".jpg";
+    return "assets/" + color + "_" + value + ".jpg";
 }
 
 class Deck {
-  LinkedList<Card> cards;
+    LinkedList<Card> cards;
 
 public:
-  Deck() {
-    CardColor colors[] = {CARD_RED, CARD_GREEN, CARD_BLUE, CARD_YELLOW};
-    for (CardColor color : colors) {
-      cards.insertEnd(Card(color, NUMBER, 0));
-      for (int i = 1; i <= 9; ++i) {
-        cards.insertEnd(Card(color, NUMBER, i));
-        cards.insertEnd(Card(color, NUMBER, i));
-      }
-      cards.insertEnd(Card(color, SKIP));
-      cards.insertEnd(Card(color, SKIP));
-      cards.insertEnd(Card(color, REVERSE));
-      cards.insertEnd(Card(color, REVERSE));
-      cards.insertEnd(Card(color, DRAW_TWO));
-      cards.insertEnd(Card(color, DRAW_TWO));
-    }
-    for (int i = 0; i < 4; ++i) {
-      cards.insertEnd(Card(WILD, WILD_COLOR));
-      cards.insertEnd(Card(WILD, WILD_DRAW_FOUR));
-    }
-  }
-
-  Card drawCard() {
-    Node<Card> *headNode = cards.getHead();
-    if (headNode == nullptr) {
-      cout << "Deck is empty" << endl;
-      return Card();
-    }
-    Card drawnCard = headNode->getData();
-    cards.deleteFront();
-    return drawnCard;
-  }
-
-  void insertCardToBottom(Card c) { cards.insertEnd(c); }
-
-  bool isEmpty() { return cards.getHead() == NULL; }
-
-  void shuffle() { // time = O(n) +  space = O(n)
-    if (cards.getHead() == nullptr || cards.getHead()->getNext() == nullptr) {
-      return;
+    Deck() {
+        CardColor colors[] = {CARD_RED, CARD_GREEN, CARD_BLUE, CARD_YELLOW};
+        for (CardColor color : colors) {
+            cards.insertEnd(Card(color, NUMBER, 0));
+            for (int i = 1; i <= 9; ++i) {
+                cards.insertEnd(Card(color, NUMBER, i));
+                cards.insertEnd(Card(color, NUMBER, i));
+            }
+            cards.insertEnd(Card(color, SKIP));
+            cards.insertEnd(Card(color, SKIP));
+            cards.insertEnd(Card(color, REVERSE));
+            cards.insertEnd(Card(color, REVERSE));
+            cards.insertEnd(Card(color, DRAW_TWO));
+            cards.insertEnd(Card(color, DRAW_TWO));
+        }
+        for (int i = 0; i < 4; ++i) {
+            cards.insertEnd(Card(WILD, WILD_COLOR));
+            cards.insertEnd(Card(WILD, WILD_DRAW_FOUR));
+        }
     }
 
-    // linkedlist to array
-    vector<Card> tempCards;
-    Node<Card> *current = cards.getHead();
-    if (!current)
-      return;
-
-    do {
-      tempCards.push_back(current->getData());
-      current = current->getNext();
-    } while (current != cards.getHead());
-
-    // shuffle array
-    for (int i = tempCards.size() - 1; i > 0; --i) {
-      int j = randomValue(0, i);
-      swap(tempCards[i], tempCards[j]);
+    Card drawCard() {
+        Node<Card>* headNode = cards.getHead();
+        if (headNode == nullptr) {
+            cout << "Deck is empty" << endl;
+            return Card();
+        }
+        Card drawnCard = headNode->getData();
+        cards.deleteFront();
+        return drawnCard;
     }
 
-    // array to linkedlist
-    current = cards.getHead();
-    for (const Card &c : tempCards) {
-      current->setData(c);
-      current = current->getNext();
+    void insertCardToBottom(Card c) { cards.insertEnd(c); }
+
+    bool isEmpty() { return cards.getHead() == nullptr; }
+
+    void shuffle() {
+        if (cards.getHead() == nullptr || cards.getHead()->getNext() == cards.getHead())
+            return;
+
+        vector<Card> tempCards;
+        Node<Card>* current = cards.getHead();
+        do {
+            tempCards.push_back(current->getData());
+            current = current->getNext();
+        } while (current != cards.getHead());
+
+        for (size_t i = tempCards.size() - 1; i > 0; --i) {
+            size_t j = randomValue(0, (int)i);
+            swap(tempCards[i], tempCards[j]);
+        }
+
+        current = cards.getHead();
+        for (const Card& c : tempCards) {
+            current->setData(c);
+            current = current->getNext();
+        }
     }
-  }
 };
 
 class DiscardPile {
-  LinkedList<Card> pile;
+    LinkedList<Card> pile;
 
 public:
-  void addCard(Card c) { pile.insertEnd(c); }
+    void addCard(Card c) { pile.insertEnd(c); }
 
-  Card getTopCard() const {
-    Node<Card> *tailNode = pile.getTail();
-    if (tailNode == nullptr) {
-      cout << "Discard pile is empty" << endl;
-      return Card();
-    }
-    return tailNode->getData();
-  }
-
-  void resetIntoDeck(Deck &deck) {
-    if (pile.isEmpty()) {
-      cout << "Discard pile is empty" << endl;
-      return;
+    Card getTopCard() const {
+        Node<Card>* tailNode = pile.getTail();
+        if (tailNode == nullptr) {
+            cout << "Discard pile is empty" << endl;
+            return Card();
+        }
+        return tailNode->getData();
     }
 
-    Card topCard = getTopCard();
-    pile.deleteEnd();
-    while (!pile.isEmpty()) {
-      Card c = pile.getHead()->getData();
-      deck.insertCardToBottom(c);
-      pile.deleteFront();
-    }
-    pile.insertEnd(topCard);
-  }
+    void resetIntoDeck(Deck& deck) {
+        if (pile.isEmpty()) return;
 
-  bool isEmpty() { return pile.isEmpty(); }
+        Card topCard = getTopCard();
+        pile.deleteEnd();
+
+        while (!pile.isEmpty()) {
+            Card c = pile.getHead()->getData();
+            deck.insertCardToBottom(c);
+            pile.deleteFront();
+        }
+
+        pile.insertEnd(topCard);
+    }
+
+    bool isEmpty() { return pile.isEmpty(); }
 };
 
 class Player {
-  LinkedList<Card> hand;
-  string name;
-  int id;
+    LinkedList<Card> hand;
+    string name;
+    int id;
 
 public:
-  Player() : name(""), id(-1) {}
-  Player(string n, int i) : name(n), id(i) {}
+    Player() : name(""), id(-1) {}
+    Player(string n, int i) : name(n), id(i) {}
 
-  string getName() const { return name; }
+    string getName() const { return name; }
+    int getId() const { return id; }
 
-  int getId() const { return id; }
-
-  int getHandSize() const {
-    if (!hand.getHead())
-      return 0;
-
-    int count = 0;
-    Node<Card> *temp = hand.getHead();
-
-    do {
-      count++;
-      temp = temp->getNext();
-    } while (temp != hand.getHead());
-
-    return count;
-  }
-
-  bool hasColor(CardColor color) const {
-
-    Node<Card> *temp = hand.getHead();
-    if (!temp)
-      return false;
-
-    do {
-      if (temp->getData().color == color)
-        return true;
-      temp = temp->getNext();
-    } while (temp != hand.getHead());
-
-    return false;
-  }
-
-  bool hasPlayable(Card topCard, CardColor currentColor) {
-    Node<Card> *temp = hand.getHead();
-    if (!temp)
-      return false;
-    do {
-      Card c = temp->getData();
-      if (c.color == currentColor || c.type == topCard.type ||
-          (c.type == NUMBER && topCard.type == NUMBER &&
-           c.number == topCard.number) ||
-          c.color == WILD) {
-        return true;
-      }
-      temp = temp->getNext();
-    } while (temp != hand.getHead());
-    return false;
-  }
-
-  void addToHand(Card c) { hand.insertEnd(c); }
-
-  Card playCard(int index) { return hand.deleteAt(index); }
-
-  Card peekCard(int index) const {
-    Node<Card> *temp = hand.getHead();
-    for (int i = 0; i < index && temp != NULL; i++) {
-      temp = temp->getNext();
+    int getHandSize() const {
+        if (!hand.getHead()) return 0;
+        int count = 0;
+        Node<Card>* temp = hand.getHead();
+        do {
+            count++;
+            temp = temp->getNext();
+        } while (temp != hand.getHead());
+        return count;
     }
-    if (temp == NULL) {
-      cout << "Invalid Card Index" << endl;
-      return Card();
-    }
-    return temp->getData();
-  }
 
-  void printHand() {
-    Node<Card> *temp = hand.getHead();
-    if (!temp) {
-      cout << name << "'s hand is empty." << endl;
-      return;
+    bool hasColor(CardColor color) const {
+        Node<Card>* temp = hand.getHead();
+        if (!temp) return false;
+        do {
+            if (temp->getData().color == color) return true;
+            temp = temp->getNext();
+        } while (temp != hand.getHead());
+        return false;
     }
-    cout << name << "'s hand: ";
-    int index = 0;
 
-    do {
-      cout << "[" << index << "] " << temp->getData().toString() << "  ";
-      temp = temp->getNext();
-      index++;
-    } while (temp != hand.getHead());
-    cout << endl;
-  }
+    void addToHand(Card c) { hand.insertEnd(c); }
+
+    Card playCard(int index) { return hand.deleteAt(index); }
+
+    Card peekCard(int index) const {
+        Node<Card>* temp = hand.getHead();
+        int count = 0;
+        while (temp != nullptr && count < index) {
+            temp = temp->getNext();
+            count++;
+        }
+        if (temp == nullptr) {
+            cout << "Invalid Card Index" << endl;
+            return Card();
+        }
+        return temp->getData();
+    }
 };
 
 class Game {
-  bool isGameOver;
-  CardColor currentColor;
-  Deck deck;
-  DiscardPile discardPile;
-  LinkedList<Player> players;
-  int totalPlayers;
-  Node<Player> *currentPlayer;
-  int direction; // 1 = clockwise, -1 = counter-clockwise
-  TurnState turnState = WAITING_FOR_INPUT;
-  bool waitingForWildColor = false;
-  CardType pendingWildType;
+    bool isGameOver;
+    CardColor currentColor;
+    Deck deck;
+    DiscardPile discardPile;
+    LinkedList<Player> players;
+    int totalPlayers;
+    Node<Player>* currentPlayer;
+    int direction;
+    TurnState turnState = WAITING_FOR_INPUT;
+    CardType pendingWildType;
+    bool hadDrawnThisTurn = false;
+    float turnStartTime = 0.0f;
+    float turnTimeLimit = 15.0f;
 
 public:
-  Game() : isGameOver(false), totalPlayers(4), direction(1) {
-    for (int i = 0; i < totalPlayers; i++) {
-      players.insertEnd(Player("Player " + to_string(i + 1), i));
+    Game() : isGameOver(false), totalPlayers(4), direction(1) {
+        for (int i = 0; i < totalPlayers; i++) {
+            players.insertEnd(Player("Player " + to_string(i + 1), i));
+        }
+        currentPlayer = players.getHead();
     }
 
-    currentPlayer = players.getHead();
-  }
-
-  void start() {
-    deck.shuffle();
-    for (int i = 0; i < 7; i++) {
-      Node<Player> *temp = players.getHead();
-      for (int j = 0; j < totalPlayers; j++) {
-        temp->getData().addToHand(deck.drawCard());
-        temp = temp->getNext();
-      }
-    }
-    Card firstCard = deck.drawCard();
-    while (firstCard.color == WILD || firstCard.type == REVERSE ||
-           firstCard.type == SKIP || firstCard.type == DRAW_TWO) {
-      deck.insertCardToBottom(firstCard);
-      deck.shuffle();
-      firstCard = deck.drawCard();
-    }
-    discardPile.addCard(firstCard);
-    currentColor = firstCard.color;
-  }
-
-  int getPlayerHandSize(int playerIndex) {
-    return getPlayerByIndex(playerIndex).getHandSize();
-  }
-
-  Player &getPlayerByIndex(int index) {
-    Node<Player> *temp = players.getHead();
-    int i = 0;
-
-    while (temp != NULL && i < index) {
-      temp = temp->getNext();
-      i++;
+    float getTimeRemaining() const {
+        float elapsed = GetTime() - turnStartTime;
+        return max(0.0f, turnTimeLimit - elapsed);
     }
 
-    if (temp == NULL) {
-      cout << "Player index out of range." << endl;
+    bool isTurnTimeExpired() const {
+        return getTimeRemaining() <= 0.0f;
     }
 
-    return temp->getData();
-  }
+    void start() {
+        deck.shuffle();
+        for (int i = 0; i < 7; i++) {
+            Node<Player>* temp = players.getHead();
+            for (int j = 0; j < totalPlayers; j++) {
+                temp->getData().addToHand(deck.drawCard());
+                temp = temp->getNext();
+            }
+        }
 
-  void moveToNextPlayer() {
-    currentPlayer =
-        (direction == 1) ? currentPlayer->getNext() : currentPlayer->getPrev();
-  }
+        Card firstCard = deck.drawCard();
+        while (firstCard.color == WILD || firstCard.type == REVERSE ||
+               firstCard.type == SKIP || firstCard.type == DRAW_TWO) {
+            deck.insertCardToBottom(firstCard);
+            deck.shuffle();
+            firstCard = deck.drawCard();
+        }
 
-  void skipNextPlayer() {
-    moveToNextPlayer();
-    moveToNextPlayer();
-  }
-
-  void reverseDirection() { direction *= -1; }
-
-  Player &getCurrentPlayer() { return currentPlayer->getData(); }
-
-  Card getTopCard() const { return discardPile.getTopCard(); }
-
-  CardColor getCurrentColor() const { return currentColor; }
-
-  void setCurrentColor(CardColor color) { currentColor = color; }
-
-  int getCurrentPlayerId() const { return currentPlayer->getData().getId(); }
-
-  bool isCardValid(Card selectedCard) {
-    if (selectedCard.color == WILD || selectedCard.type == WILD_COLOR ||
-        selectedCard.type == WILD_DRAW_FOUR ||
-        selectedCard.color == currentColor ||
-        (selectedCard.type == NUMBER &&
-         discardPile.getTopCard().type == NUMBER &&
-         selectedCard.number == discardPile.getTopCard().number) ||
-        (selectedCard.type != NUMBER &&
-         selectedCard.type == discardPile.getTopCard().type)) {
-      return true;
-    } else {
-      cout << "You cannot play " << selectedCard.toString() << " on "
-           << discardPile.getTopCard().toString() << endl;
-      return false;
-    }
-  }
-
-  Card safeDraw() {
-    if (deck.isEmpty()) {
-      discardPile.resetIntoDeck(deck);
-      deck.shuffle();
-    }
-    return deck.drawCard();
-  }
-
-  bool playSpecialCard(Card playedCard) {
-    if (playedCard.color != WILD) {
-      currentColor = playedCard.color;
+        discardPile.addCard(firstCard);
+        currentColor = firstCard.color;
     }
 
-    if (playedCard.type == REVERSE) {
-      reverseDirection();
-      return false;
+    Player& getCurrentPlayer() { return currentPlayer->getData(); }
+    Card getTopCard() const { return discardPile.getTopCard(); }
+    CardColor getCurrentColor() const { return currentColor; }
+
+    bool isCardValid(Card selectedCard) {
+        Card top = discardPile.getTopCard();
+        if (selectedCard.color == WILD ||
+            selectedCard.type == WILD_COLOR ||
+            selectedCard.type == WILD_DRAW_FOUR ||
+            selectedCard.color == currentColor ||
+            (selectedCard.type == NUMBER && top.type == NUMBER && selectedCard.number == top.number) ||
+            (selectedCard.type != NUMBER && selectedCard.type == top.type)) {
+            return true;
+        }
+        return false;
     }
 
-    if (playedCard.type == SKIP) {
-      skipNextPlayer();
-      return true;
+    Card safeDraw() {
+        if (deck.isEmpty()) {
+            discardPile.resetIntoDeck(deck);
+            deck.shuffle();
+        }
+        return deck.drawCard();
     }
 
-    if (playedCard.type == DRAW_TWO) {
-      Node<Player> *target = (direction == 1) ? currentPlayer->getNext()
-                                              : currentPlayer->getPrev();
+    bool playSpecialCard(Card playedCard) {
+        if (playedCard.color != WILD) {
+            currentColor = playedCard.color;
+        }
 
-      target->getData().addToHand(safeDraw());
-      target->getData().addToHand(safeDraw());
-      skipNextPlayer();
-      return true;
+        if (playedCard.type == REVERSE) {
+            direction *= -1;
+            return false;
+        }
+        if (playedCard.type == SKIP) {
+            moveToNextPlayer();
+            return true;
+        }
+        if (playedCard.type == DRAW_TWO) {
+            Node<Player>* target = (direction == 1) ? currentPlayer->getNext() : currentPlayer->getPrev();
+            target->getData().addToHand(safeDraw());
+            target->getData().addToHand(safeDraw());
+            moveToNextPlayer();
+            return true;
+        }
+        if (playedCard.type == WILD_COLOR || playedCard.type == WILD_DRAW_FOUR) {
+            turnState = WAITING_FOR_WILD_COLOR;
+            pendingWildType = playedCard.type;
+            return false;
+        }
+        return false;
     }
 
-    if (playedCard.type == WILD_COLOR || playedCard.type == WILD_DRAW_FOUR) {
+    bool isWaitingForWildColor() const { return turnState == WAITING_FOR_WILD_COLOR; }
 
-      waitingForWildColor = true;
-      pendingWildType = playedCard.type;
-      return false;
+    void chooseWildColor(CardColor color) {
+        if (turnState != WAITING_FOR_WILD_COLOR) return;
+        currentColor = color;
+
+        if (pendingWildType == WILD_DRAW_FOUR) {
+            Node<Player>* target = (direction == 1) ? currentPlayer->getNext() : currentPlayer->getPrev();
+            for (int i = 0; i < 4; i++) {
+                target->getData().addToHand(safeDraw());
+            }
+            moveToNextPlayer();
+        } else {
+            moveToNextPlayer();
+        }
+
+        turnState = TURN_FINISHED;
+        pendingWildType = NUMBER;
     }
 
-    return false;
-  }
-
-  void chooseWildColor(CardColor color) {
-    if (!waitingForWildColor)
-      return;
-
-    currentColor = color;
-
-    if (pendingWildType == WILD_DRAW_FOUR) {
-      Node<Player> *target = (direction == 1) ? currentPlayer->getNext()
-                                              : currentPlayer->getPrev();
-
-      for (int i = 0; i < 4; i++) {
-        target->getData().addToHand(safeDraw());
-      }
-      skipNextPlayer();
-    } else if (pendingWildType == WILD_COLOR) {
-      moveToNextPlayer();
+    void beginTurn() {
+        turnState = WAITING_FOR_INPUT;
+        hadDrawnThisTurn = false;
+        turnStartTime = GetTime();
     }
 
-    waitingForWildColor = false;
-    turnState = TURN_FINISHED;
-  }
+    void autoPlayOrDraw() {
+        if (turnState != WAITING_FOR_INPUT || isWaitingForWildColor()) return;
 
-  void beginTurn() { turnState = WAITING_FOR_INPUT; }
+        Player& player = currentPlayer->getData();
+        int handSize = player.getHandSize();
 
-  bool isWaitingForInput() const { return turnState == WAITING_FOR_INPUT; }
-
-  bool isTurnFinished() const { return turnState == TURN_FINISHED; }
-
-  void handleDraw() {
-    Player &player = currentPlayer->getData();
-    Card drawn = safeDraw();
-    player.addToHand(drawn);
-
-    if (isCardValid(drawn)) {
-      turnState = WAITING_FOR_INPUT;
-    } else {
-      moveToNextPlayer();
-      turnState = TURN_FINISHED;
-    }
-  }
-
-  void advanceTurnIfNeeded() {
-    if (turnState == TURN_FINISHED && !isGameOver) {
-      beginTurn();
-    }
-  }
-
-  bool handlePlay(int cardIndex) {
-    if (turnState != WAITING_FOR_INPUT || waitingForWildColor)
-      return false;
-    Player &player = currentPlayer->getData();
-
-    Card selected = player.peekCard(cardIndex);
-
-    if (!isCardValid(selected)) {
-      return false;
+        for (int i = 0; i < handSize; i++) {
+            Card selected = player.peekCard(i);
+            if (isCardValid(selected) &&
+                !(selected.type == WILD_DRAW_FOUR && player.hasColor(currentColor))) {
+                handlePlay(i);
+                return;
+            }
+        }
+        handleDraw();
     }
 
-    if (selected.type == WILD_DRAW_FOUR && player.hasColor(currentColor)) {
-      return false;
+    bool isWaitingForInput() const { return turnState == WAITING_FOR_INPUT; }
+
+    void handleDraw() {
+        if (hadDrawnThisTurn) return;
+
+        Player& player = currentPlayer->getData();
+        Card drawn = safeDraw();
+        player.addToHand(drawn);
+
+        if (isCardValid(drawn)) {
+        } else {
+            moveToNextPlayer();
+            turnState = TURN_FINISHED;
+        }
+        hadDrawnThisTurn = true;
     }
 
-    Card playedCard = player.playCard(cardIndex);
-    discardPile.addCard(playedCard);
-
-    bool skipHandled = playSpecialCard(playedCard);
-
-    if (player.getHandSize() == 0) {
-      isGameOver = true;
-      turnState = GAME_OVER;
-      return true;
+    void advanceTurnIfNeeded() {
+        if (turnState == TURN_FINISHED && !isGameOver) {
+            beginTurn();
+        }
     }
 
-    if (!skipHandled && !waitingForWildColor) {
-      moveToNextPlayer();
+    bool handlePlay(int cardIndex) {
+        if (turnState != WAITING_FOR_INPUT || isWaitingForWildColor()) return false;
+
+        Player& player = currentPlayer->getData();
+        Card selected = player.peekCard(cardIndex);
+
+        if (!isCardValid(selected)) return false;
+        if (selected.type == WILD_DRAW_FOUR && player.hasColor(currentColor)) return false;
+
+        Card playedCard = player.playCard(cardIndex);
+        discardPile.addCard(playedCard);
+
+        bool skipHandled = playSpecialCard(playedCard);
+
+        if (player.getHandSize() == 0) {
+            isGameOver = true;
+            turnState = GAME_OVER;
+            return true;
+        }
+
+        if (!skipHandled && !isWaitingForWildColor()) {
+            moveToNextPlayer();
+        }
+
+        if (!isWaitingForWildColor()) {
+            turnState = TURN_FINISHED;
+        }
+        return true;
     }
 
-    if (!waitingForWildColor) {
-      turnState = TURN_FINISHED;
+    bool gameOver() const { return isGameOver; }
+
+    void moveToNextPlayer() {
+        currentPlayer = (direction == 1) ? currentPlayer->getNext() : currentPlayer->getPrev();
     }
-
-    return true;
-  }
-
-  bool gameOver() const { return isGameOver; }
 
     void reset() {
-    isGameOver = false;
-    currentColor = CARD_RED;
-    turnState = WAITING_FOR_INPUT;
-    waitingForWildColor = false;
-    direction = 1;
-    
-    deck = Deck();
-    discardPile = DiscardPile();
-    
-    players = LinkedList<Player>();
-    for (int i = 0; i < totalPlayers; i++) {
-      players.insertEnd(Player("Player " + to_string(i + 1), i));
+        isGameOver = false;
+        currentColor = CARD_RED;
+        turnState = WAITING_FOR_INPUT;
+        direction = 1;
+        deck = Deck();
+        discardPile = DiscardPile();
+        players.clear();
+
+        for (int i = 0; i < totalPlayers; i++) {
+            players.insertEnd(Player("Player " + to_string(i + 1), i));
+        }
+        currentPlayer = players.getHead();
+
+        start();
+        beginTurn();
     }
-    
-    currentPlayer = players.getHead();
-    
-    start();
-    beginTurn();
-  }
 };
 
 struct CardTextures {
-  unordered_map<string, Texture2D> textures;
-  Texture2D back;
+    unordered_map<string, Texture2D> textures;
+    Texture2D back;
 };
 
 class UnoGUI {
-  Screen currentScreen;
-  Game &game;
-  CardTextures cardTextures;
-  int hoveredCardIndex = -1;
-  Rectangle drawButton;
+    Screen currentScreen;
+    Game& game;
+    CardTextures cardTextures;
+    int hoveredCardIndex = -1;
+    Rectangle drawButton;
+    Rectangle resetButton;
+    Rectangle colorButtons[4];
+    const char* colorNames[4] = {"Red", "Green", "Blue", "Yellow"};
+    Color colorValues[4] = {RED, GREEN, BLUE, YELLOW};
 
 public:
-  int screenWidth = 1440;
-  int screenHeight = 900;
+    int screenWidth = 1440;
+    int screenHeight = 900;
 
-  UnoGUI(Game &g) : game(g) { currentScreen = SCREEN_MAIN_MENU; }
-  
-  void loadCardTextures() {
-    cardTextures.back = LoadTexture("assets/back.jpg");
+    UnoGUI(Game& g) : game(g) {
+        currentScreen = SCREEN_MAIN_MENU;
+        drawButton = {0, 0, 150, 50};
 
-    vector<string> files = {"Blue_0.jpg",
-                            "Red_Reverse.jpg",
-                            "Green_Draw_2.jpg",
-                            "Wild.jpg",
-                            "Wild_Draw_4.jpg",
-                            "Red_0.jpg",
-                            "Red_1.jpg",
-                            "Red_2.jpg",
-                            "Red_3.jpg",
-                            "Red_4.jpg",
-                            "Red_5.jpg",
-                            "Red_6.jpg",
-                            "Red_7.jpg",
-                            "Red_8.jpg",
-                            "Red_9.jpg",
-                            "Red_Skip.jpg",
-                            "Red_Draw_2.jpg",
-                            "Green_0.jpg",
-                            "Green_1.jpg",
-                            "Green_2.jpg",
-                            "Green_3.jpg",
-                            "Green_4.jpg",
-                            "Green_5.jpg",
-                            "Green_6.jpg",
-                            "Green_7.jpg",
-                            "Green_8.jpg",
-                            "Green_9.jpg",
-                            "Green_Skip.jpg",
-                            "Green_Reverse.jpg",
-                            "Blue_1.jpg",
-                            "Blue_2.jpg",
-                            "Blue_3.jpg",
-                            "Blue_4.jpg",
-                            "Blue_5.jpg",
-                            "Blue_6.jpg",
-                            "Blue_7.jpg",
-                            "Blue_8.jpg",
-                            "Blue_9.jpg",
-                            "Blue_Skip.jpg",
-                            "Blue_Reverse.jpg",
-                            "Blue_Draw_2.jpg",
-                            "Yellow_0.jpg",
-                            "Yellow_1.jpg",
-                            "Yellow_2.jpg",
-                            "Yellow_3.jpg",
-                            "Yellow_4.jpg",
-                            "Yellow_5.jpg",
-                            "Yellow_6.jpg",
-                            "Yellow_7.jpg",
-                            "Yellow_8.jpg",
-                            "Yellow_9.jpg",
-                            "Yellow_Skip.jpg",
-                            "Yellow_Reverse.jpg",
-                            "Yellow_Draw_2.jpg"
+        int btnWidth = 140;
+        int btnHeight = 60;
+        int centerX = screenWidth / 2 - (btnWidth * 2 + 20) / 2;
+        int centerY = screenHeight / 2 - btnHeight / 2;
 
-    };
-
-    for (auto &f : files) {
-      cardTextures.textures[f] = LoadTexture(("assets/" + f).c_str());
-    }
-  }
-
-  void drawCardTexture(const Card &card, int x, int y, bool faceDown = false) {
-    Texture2D tex;
-
-    if (faceDown) {
-      tex = cardTextures.back;
-    } else {
-      string path = GetCardTexturePath(card);
-      string filename = path.substr(path.find_last_of("/") + 1);
-      tex = cardTextures.textures[filename];
+        colorButtons[0] = {(float)centerX, (float)(centerY - 80), (float)btnWidth, (float)btnHeight};
+        colorButtons[1] = {(float)(centerX + btnWidth + 20), (float)(centerY - 80), (float)btnWidth, (float)btnHeight};
+        colorButtons[2] = {(float)centerX, (float)(centerY + 20), (float)btnWidth, (float)btnHeight};
+        colorButtons[3] = {(float)(centerX + btnWidth + 20), (float)(centerY + 20), (float)btnWidth, (float)btnHeight};
     }
 
-    Rectangle src = {0, 0, (float)tex.width, (float)tex.height};
-    Rectangle dst = {(float)x, (float)y, CARD_WIDTH, CARD_HEIGHT};
-    Vector2 origin = {0, 0};
+    void loadCardTextures() {
+        cardTextures.back = LoadTexture("assets/back.jpg");
 
-    DrawTexturePro(tex, src, dst, origin, 0.0f, WHITE);
-  }
+        vector<string> files = {
+            "Blue_0.jpg", "Red_Reverse.jpg", "Green_Draw_2.jpg",
+            "Wild.jpg", "Wild_Draw_4.jpg", "Red_0.jpg",
+            "Red_1.jpg", "Red_2.jpg", "Red_3.jpg", "Red_4.jpg",
+            "Red_5.jpg", "Red_6.jpg", "Red_7.jpg", "Red_8.jpg", "Red_9.jpg",
+            "Red_Skip.jpg", "Red_Draw_2.jpg",
+            "Green_0.jpg", "Green_1.jpg", "Green_2.jpg", "Green_3.jpg", "Green_4.jpg",
+            "Green_5.jpg", "Green_6.jpg", "Green_7.jpg", "Green_8.jpg", "Green_9.jpg",
+            "Green_Skip.jpg", "Green_Reverse.jpg", "Green_Draw_2.jpg",
+            "Blue_1.jpg", "Blue_2.jpg", "Blue_3.jpg", "Blue_4.jpg",
+            "Blue_5.jpg", "Blue_6.jpg", "Blue_7.jpg", "Blue_8.jpg", "Blue_9.jpg",
+            "Blue_Skip.jpg", "Blue_Reverse.jpg", "Blue_Draw_2.jpg",
+            "Yellow_0.jpg", "Yellow_1.jpg", "Yellow_2.jpg", "Yellow_3.jpg", "Yellow_4.jpg",
+            "Yellow_5.jpg", "Yellow_6.jpg", "Yellow_7.jpg", "Yellow_8.jpg", "Yellow_9.jpg",
+            "Yellow_Skip.jpg", "Yellow_Reverse.jpg", "Yellow_Draw_2.jpg"
+        };
 
-  void init() {
-    InitWindow(screenWidth, screenHeight, "UNO - LinkedList Implementation");
-    SetTargetFPS(60);
-    loadCardTextures();
-  }
-
-  void shutdown() { CloseWindow(); }
-
-  void beginFrame() {
-    BeginDrawing();
-    ClearBackground(DARKGREEN);
-  }
-
-  void endFrame() { EndDrawing(); }
-
-  bool runFrame() {
-    beginFrame();
-
-    switch (currentScreen) {
-    case SCREEN_MAIN_MENU:
-      drawMainMenu();
-      break;
-
-    case SCREEN_GAMEPLAY:
-      drawGameplay();
-      break;
-
-    case SCREEN_EXIT:
-      endFrame();
-      return false;
-    }
-
-    endFrame();
-    return true;
-  }
-
-  void drawMainMenu() {
-    DrawText("UNO", 600, 200, 80, YELLOW);
-    DrawText("Press ENTER to Start", 560, 320, 30, WHITE);
-    DrawText("Press ESC to Exit", 580, 370, 25, GRAY);
-
-    if (IsKeyPressed(KEY_ENTER)) {
-      game.start();
-      game.beginTurn();
-      currentScreen = SCREEN_GAMEPLAY;
-    }
-
-    if (IsKeyPressed(KEY_ESCAPE)) {
-      currentScreen = SCREEN_EXIT;
-    }
-  }
-
-  void updateHoveredCard(const Player& player, int startX, int y, int cardWidth, int cardHeight, int spacing) {
-    hoveredCardIndex = -1;
-    
-    if (!game.isWaitingForInput()) {
-      return;
-    }
-    
-    Vector2 mousePos = GetMousePosition();
-    int handSize = player.getHandSize();
-    
-    for (int i = 0; i < handSize; i++) {
-      int x = startX + i * (cardWidth + spacing);
-
-      Rectangle normalRect = { (float)x, (float)y, (float)cardWidth, (float)cardHeight };
-      Rectangle liftedRect = { (float)x, (float)y - 25, (float)cardWidth, (float)cardHeight };
-      
-      if (CheckCollisionPointRec(mousePos, normalRect) || 
-          CheckCollisionPointRec(mousePos, liftedRect)) {
-        hoveredCardIndex = i;
-        return;
-      }
-    }
-  }
-
-  void handleInput() {
-    if (!game.isWaitingForInput())
-      return;
-
-    Player &player = game.getCurrentPlayer();
-    int handSize = player.getHandSize();
-
-    for (int i = KEY_ZERO; i <= KEY_NINE; i++) {
-      if (IsKeyPressed(i)) {
-        int index = i - KEY_ZERO;
-        if (index < handSize) {
-          game.handlePlay(index);
+        for (auto& f : files) {
+            cardTextures.textures[f] = LoadTexture(("assets/" + f).c_str());
         }
-      }
     }
 
-    if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
-      if (hoveredCardIndex != -1 && hoveredCardIndex < handSize) {
-        Card selectedCard = player.peekCard(hoveredCardIndex);
-        if (game.isCardValid(selectedCard)) {
-          if (selectedCard.type == WILD_DRAW_FOUR && player.hasColor(game.getCurrentColor())) {
+    void drawCardTexture(const Card& card, int x, int y, bool faceDown = false) {
+        Texture2D tex;
+        if (faceDown) {
+            tex = cardTextures.back;
+        } else {
+            string path = GetCardTexturePath(card);
+            string filename = path.substr(path.find_last_of("/") + 1);
+            tex = cardTextures.textures[filename];
+        }
+
+        Rectangle src = {0, 0, (float)tex.width, (float)tex.height};
+        Rectangle dst = {(float)x, (float)y, CARD_WIDTH, CARD_HEIGHT};
+        Vector2 origin = {0, 0};
+        DrawTexturePro(tex, src, dst, origin, 0.0f, WHITE);
+    }
+
+    void init() {
+        InitWindow(screenWidth, screenHeight, "UNO - LinkedList Implementation");
+        SetTargetFPS(60);
+        loadCardTextures();
+    }
+
+    void shutdown() { CloseWindow(); }
+
+    void beginFrame() {
+        BeginDrawing();
+        ClearBackground(DARKGREEN);
+    }
+
+    void endFrame() { EndDrawing(); }
+
+    bool runFrame() {
+        beginFrame();
+        switch (currentScreen) {
+            case SCREEN_MAIN_MENU:
+                drawMainMenu();
+                break;
+            case SCREEN_GAMEPLAY:
+                drawGameplay();
+                break;
+            case SCREEN_EXIT:
+                endFrame();
+                return false;
+        }
+        endFrame();
+        return true;
+    }
+
+    void drawMainMenu() {
+        DrawText("UNO", 600, 200, 80, YELLOW);
+        DrawText("Press ENTER to Start", 560, 320, 30, WHITE);
+        DrawText("Press ESC to Exit", 580, 370, 25, GRAY);
+
+        if (IsKeyPressed(KEY_ENTER)) {
+            game.start();
+            game.beginTurn();
+            currentScreen = SCREEN_GAMEPLAY;
+        }
+        if (IsKeyPressed(KEY_ESCAPE)) {
+            currentScreen = SCREEN_EXIT;
+        }
+    }
+
+    void updateHoveredCard(const Player& player, int startX, int y, int cardWidth, int cardHeight, int spacing) {
+        hoveredCardIndex = -1;
+        if (!game.isWaitingForInput()) return;
+
+        Vector2 mousePos = GetMousePosition();
+        int handSize = player.getHandSize();
+
+        for (int i = 0; i < handSize; i++) {
+            int x = startX + i * (cardWidth + spacing);
+            Rectangle normalRect = {(float)x, (float)y, (float)cardWidth, (float)cardHeight};
+            Rectangle liftedRect = {(float)x, (float)y - 25, (float)cardWidth, (float)cardHeight};
+
+            if (CheckCollisionPointRec(mousePos, normalRect) ||
+                CheckCollisionPointRec(mousePos, liftedRect)) {
+                hoveredCardIndex = i;
+                return;
+            }
+        }
+    }
+
+    void handleInput() {
+        if (game.gameOver()) return;
+
+        if (game.isWaitingForWildColor()) {
+            if (game.isTurnTimeExpired()) {
+                CardColor colors[] = {CARD_RED, CARD_GREEN, CARD_BLUE, CARD_YELLOW};
+                game.chooseWildColor(colors[randomValue(0, 3)]);
+                return;
+            }
+
+            Vector2 mouse = GetMousePosition();
+            for (int i = 0; i < 4; i++) {
+                if (CheckCollisionPointRec(mouse, colorButtons[i])) {
+                    if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
+                        CardColor chosen;
+                        switch (i) {
+                            case 0: chosen = CARD_RED;    break;
+                            case 1: chosen = CARD_GREEN;  break;
+                            case 2: chosen = CARD_BLUE;   break;
+                            case 3: chosen = CARD_YELLOW; break;
+                        }
+                        game.chooseWildColor(chosen);
+                        return;
+                    }
+                }
+            }
+
+            if (IsKeyPressed(KEY_R)) game.chooseWildColor(CARD_RED);
+            if (IsKeyPressed(KEY_G)) game.chooseWildColor(CARD_GREEN);
+            if (IsKeyPressed(KEY_B)) game.chooseWildColor(CARD_BLUE);
+            if (IsKeyPressed(KEY_Y)) game.chooseWildColor(CARD_YELLOW);
             return;
-          }
-          game.handlePlay(hoveredCardIndex);
         }
-      }
-    }
 
-    if (IsKeyPressed(KEY_D)) {
-      game.handleDraw();
-    }
+        if (!game.isWaitingForInput()) return;
 
-    if (IsKeyPressed(KEY_R))
-      game.chooseWildColor(CARD_RED);
-    if (IsKeyPressed(KEY_G))
-      game.chooseWildColor(CARD_GREEN);
-    if (IsKeyPressed(KEY_B))
-      game.chooseWildColor(CARD_BLUE);
-    if (IsKeyPressed(KEY_Y))
-      game.chooseWildColor(CARD_YELLOW);
+        Player& player = game.getCurrentPlayer();
+        int handSize = player.getHandSize();
 
-    if (IsKeyPressed(KEY_ESCAPE)) {
-      currentScreen = SCREEN_EXIT;
-    }
-  }
-
-  void drawGameplay() {
-    DrawText("UNO Game", 20, 20, 30, WHITE);
-
-    if (!game.gameOver()) {
-      Player &currentPlayer = game.getCurrentPlayer();
-      string playerName = currentPlayer.getName();
-
-      DrawText(("Current Player: " + playerName).c_str(), 20, 60, 20, WHITE);
-
-      Card topCard = game.getTopCard();
-      DrawText(("Top Card: " + topCard.toString()).c_str(), 20, 90, 20, WHITE);
-      
-      string currentColorStr;
-      switch (game.getCurrentColor()) {
-        case CARD_RED: currentColorStr = "Red"; break;
-        case CARD_GREEN: currentColorStr = "Green"; break;
-        case CARD_BLUE: currentColorStr = "Blue"; break;
-        case CARD_YELLOW: currentColorStr = "Yellow"; break;
-        case WILD: currentColorStr = "Wild"; break;
-      }
-      DrawText(("Current Color: " + currentColorStr).c_str(), 20, 120, 20, WHITE);
-
-      DrawText(("Hand Size: " + to_string(currentPlayer.getHandSize())).c_str(),
-               20, 150, 20, WHITE);
-
-      
-
-      int cardWidth = CARD_WIDTH;
-      int cardHeight = CARD_HEIGHT;
-
-      int handSize = currentPlayer.getHandSize();
-      if (handSize == 0) {
-        int centerY = (screenHeight - CARD_HEIGHT) / 2;
-        drawCardTexture(Card(), screenWidth / 2 - CARD_WIDTH - 20, centerY, true);
-        drawCardTexture(game.getTopCard(), screenWidth / 2 + 20, centerY);
-        
-        DrawText("Press D to draw a card | Press ESC to exit", 
-                 screenWidth/2 - 200, screenHeight - 50, 20, LIGHTGRAY);
-        
-        handleInput();
-        game.advanceTurnIfNeeded();
-        return;
-      }
-
-      int handAreaWidth = screenWidth - 120;
-      int desiredSpacing = 30;
-      int spacing = desiredSpacing;
-      int totalWidth = handSize * cardWidth + (handSize - 1) * spacing;
-
-      if (totalWidth > handAreaWidth && handSize > 1) {
-        spacing = (handAreaWidth - handSize * cardWidth) / (handSize - 1);
-        totalWidth = handSize * cardWidth + (handSize - 1) * spacing;
-      }
-
-      int minVisible = 35;
-      int minSpacing = minVisible - cardWidth;
-
-      if (spacing < minSpacing) {
-        spacing = minSpacing;
-        totalWidth = cardWidth + (handSize - 1) * (cardWidth + spacing);
-      }
-
-      int startX = (screenWidth - totalWidth) / 2;
-      int baseY = screenHeight - cardHeight - 30;
-
-      updateHoveredCard(currentPlayer, startX, baseY, cardWidth, cardHeight, spacing);
-      
-      for (int i = 0; i < handSize; i++) {
-        if (i == hoveredCardIndex) {
-          continue; 
+        for (int i = KEY_ZERO; i <= KEY_NINE; i++) {
+            if (IsKeyPressed(i)) {
+                int index = i - KEY_ZERO;
+                if (index < handSize) {
+                    game.handlePlay(index);
+                }
+            }
         }
-        
-        Card card = currentPlayer.peekCard(i);
-        int x = startX + i * (cardWidth + spacing);
-        
-        if (!game.isCardValid(card)) {
-          Texture2D tex;
-          string path = GetCardTexturePath(card);
-          string filename = path.substr(path.find_last_of("/") + 1);
-          tex = cardTextures.textures[filename];
-          
-          Rectangle src = {0, 0, (float)tex.width, (float)tex.height};
-          Rectangle dst = {(float)x, (float)baseY, CARD_WIDTH, CARD_HEIGHT};
-          Vector2 origin = {0, 0};
 
-          DrawTexturePro(tex, src, dst, origin, 0.0f, Color{255, 255, 255, 204});
+        if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
+            if (CheckCollisionPointRec(GetMousePosition(), drawButton)) {
+                game.handleDraw();
+                return;
+            }
+            if (hoveredCardIndex != -1 && hoveredCardIndex < handSize) {
+                Card selected = player.peekCard(hoveredCardIndex);
+                if (game.isCardValid(selected)) {
+                    if (selected.type == WILD_DRAW_FOUR && player.hasColor(game.getCurrentColor())) {
+                        return;
+                    }
+                    game.handlePlay(hoveredCardIndex);
+                }
+            }
+        }
+
+        if (IsKeyPressed(KEY_D)) game.handleDraw();
+        if (IsKeyPressed(KEY_ESCAPE)) currentScreen = SCREEN_EXIT;
+    }
+
+    void drawGameplay() {
+        DrawText("UNO Game", 20, 20, 30, WHITE);
+
+        if (!game.gameOver()) {
+            Player& currentPlayer = game.getCurrentPlayer();
+            string playerName = currentPlayer.getName();
+            DrawText(("Current Player: " + playerName).c_str(), 20, 60, 20, WHITE);
+            Card topCard = game.getTopCard();
+            DrawText(("Top Card: " + topCard.toString()).c_str(), 20, 90, 20, WHITE);
+
+            string currentColorStr;
+            switch (game.getCurrentColor()) {
+                case CARD_RED:    currentColorStr = "Red";    break;
+                case CARD_GREEN:  currentColorStr = "Green";  break;
+                case CARD_BLUE:   currentColorStr = "Blue";   break;
+                case CARD_YELLOW: currentColorStr = "Yellow"; break;
+                case WILD:        currentColorStr = "Wild";   break;
+            }
+            DrawText(("Current Color: " + currentColorStr).c_str(), 20, 120, 20, WHITE);
+            DrawText(("Hand Size: " + to_string(currentPlayer.getHandSize())).c_str(), 20, 150, 20, WHITE);
+
+            float timeRemaining = game.getTimeRemaining();
+            DrawText(("Time Left: " + to_string((int)ceil(timeRemaining)) + "s").c_str(),
+                     20, 180, 20, timeRemaining < 5.0f ? RED : WHITE);
+
+            if (game.isTurnTimeExpired() && game.isWaitingForInput()) {
+                game.autoPlayOrDraw();
+            }
+
+            int centerY = (screenHeight - CARD_HEIGHT) / 2 - 50;
+            drawCardTexture(Card(), screenWidth / 2 - CARD_WIDTH - 20, centerY, true);
+            drawCardTexture(game.getTopCard(), screenWidth / 2 + 20, centerY);
+
+            DrawText("DECK",    screenWidth / 2 - CARD_WIDTH - 20, centerY + CARD_HEIGHT + 10, 15, WHITE);
+            DrawText("DISCARD", screenWidth / 2 + 20,             centerY + CARD_HEIGHT + 10, 15, WHITE);
+
+            int cardWidth = CARD_WIDTH;
+            int cardHeight = CARD_HEIGHT;
+            int handSize = currentPlayer.getHandSize();
+
+            if (handSize == 0) {
+                DrawText("Press ESC to exit", screenWidth / 2 - 100, screenHeight - 50, 20, LIGHTGRAY);
+                handleInput();
+                game.advanceTurnIfNeeded();
+                return;
+            }
+
+            int handAreaWidth = screenWidth - 120;
+            int desiredSpacing = 30;
+            int spacing = desiredSpacing;
+            int totalWidth = handSize * cardWidth + (handSize - 1) * spacing;
+
+            if (totalWidth > handAreaWidth && handSize > 1) {
+                spacing = (handAreaWidth - handSize * cardWidth) / (handSize - 1);
+                totalWidth = handSize * cardWidth + (handSize - 1) * spacing;
+            }
+
+            int minVisible = 35;
+            int minSpacing = minVisible - cardWidth;
+            if (spacing < minSpacing) spacing = minSpacing;
+
+            int startX = (screenWidth - totalWidth) / 2;
+            int baseY = screenHeight - cardHeight - 80;
+
+            updateHoveredCard(currentPlayer, startX, baseY, cardWidth, cardHeight, spacing);
+
+            for (int i = 0; i < handSize; i++) {
+                if (i == hoveredCardIndex) continue;
+                Card card = currentPlayer.peekCard(i);
+                int x = startX + i * (cardWidth + spacing);
+
+                if (!game.isCardValid(card)) {
+                    string path = GetCardTexturePath(card);
+                    string filename = path.substr(path.find_last_of("/") + 1);
+                    Texture2D tex = cardTextures.textures[filename];
+                    Rectangle src = {0, 0, (float)tex.width, (float)tex.height};
+                    Rectangle dst = {(float)x, (float)baseY, CARD_WIDTH, CARD_HEIGHT};
+                    DrawTexturePro(tex, src, dst, {0, 0}, 0.0f, Color{255, 255, 255, 204});
+                } else {
+                    drawCardTexture(card, x, baseY);
+                }
+            }
+
+            if (hoveredCardIndex != -1) {
+                Card card = currentPlayer.peekCard(hoveredCardIndex);
+                int x = startX + hoveredCardIndex * (cardWidth + spacing);
+                int liftedY = baseY - 25;
+                bool isPlayable = game.isCardValid(card);
+
+                if (card.type == WILD_DRAW_FOUR && currentPlayer.hasColor(game.getCurrentColor())) {
+                    isPlayable = false;
+                }
+
+                if (isPlayable) {
+                    DrawRectangle(x - 3, liftedY - 3, cardWidth + 6, cardHeight + 6, Color{255, 255, 200, 80});
+                    drawCardTexture(card, x, liftedY);
+                    DrawText("Click to Play", x + 5, liftedY - 20, 12, GREEN);
+                } else {
+                    string path = GetCardTexturePath(card);
+                    string filename = path.substr(path.find_last_of("/") + 1);
+                    Texture2D tex = cardTextures.textures[filename];
+                    Rectangle src = {0, 0, (float)tex.width, (float)tex.height};
+                    Rectangle dst = {(float)x, (float)liftedY, CARD_WIDTH, CARD_HEIGHT};
+                    DrawTexturePro(tex, src, dst, {0, 0}, 0.0f, Color{255, 255, 255, 153});
+                    DrawText("Cannot Play", x + 10, liftedY - 20, 12, RED);
+                }
+            }
+
+            drawButton.x = screenWidth / 2 - drawButton.width / 2;
+            drawButton.y = screenHeight - 40;
+
+            bool mouseOverDraw = CheckCollisionPointRec(GetMousePosition(), drawButton);
+            Color buttonColor = mouseOverDraw ? LIGHTGRAY : GRAY;
+
+            DrawRectangleRounded(drawButton, 0.3f, 8, buttonColor);
+            DrawRectangleRoundedLines(drawButton, 0.3f, 8, DARKGRAY);
+            DrawText("DRAW CARD",
+                     drawButton.x + drawButton.width / 2 - MeasureText("DRAW CARD", 20) / 2,
+                     drawButton.y + drawButton.height / 2 - 10, 20, BLACK);
+
+            if (game.isWaitingForWildColor()) {
+                DrawRectangle(0, 0, screenWidth, screenHeight, Color{0, 0, 0, 160});
+                DrawText("Choose a color:",
+                         screenWidth / 2 - MeasureText("Choose a color:", 40) / 2,
+                         screenHeight / 2 - 160, 40, WHITE);
+
+                for (int i = 0; i < 4; i++) {
+                    bool hovered = CheckCollisionPointRec(GetMousePosition(), colorButtons[i]);
+                    Color col = hovered ? Fade(colorValues[i], 0.7f) : colorValues[i];
+                    DrawRectangleRounded(colorButtons[i], 0.3f, 12, col);
+                    DrawRectangleRoundedLines(colorButtons[i], 0.3f, 12, WHITE);
+
+                    int tx = colorButtons[i].x + colorButtons[i].width / 2 - MeasureText(colorNames[i], 30) / 2;
+                    int ty = colorButtons[i].y + colorButtons[i].height / 2 - 15;
+                    DrawText(colorNames[i], tx, ty, 30, BLACK);
+                }
+
+                DrawText("(or press R / G / B / Y)",
+                         screenWidth / 2 - MeasureText("(or press R / G / B / Y)", 20) / 2,
+                         screenHeight / 2 + 140, 20, LIGHTGRAY);
+            }
+
+            handleInput();
+            game.advanceTurnIfNeeded();
         } else {
-          drawCardTexture(card, x, baseY);
+            drawGameOver();
         }
-      }
-      
-      if (hoveredCardIndex != -1) {
-        Card card = currentPlayer.peekCard(hoveredCardIndex);
-        int x = startX + hoveredCardIndex * (cardWidth + spacing);
-        int liftedY = baseY - 25;
-        
-        bool isPlayable = game.isCardValid(card);
-        if (card.type == WILD_DRAW_FOUR && currentPlayer.hasColor(game.getCurrentColor())) {
-          isPlayable = false; 
+    }
+
+    void drawGameOver() {
+        DrawRectangle(0, 0, screenWidth, screenHeight, Color{0, 0, 0, 200});
+
+        Player& winner = game.getCurrentPlayer();
+        DrawText("GAME OVER!", screenWidth / 2 - 150, screenHeight / 2 - 120, 50, RED);
+        DrawText(("Winner: " + winner.getName()).c_str(), screenWidth / 2 - 100, screenHeight / 2 - 60, 30, GREEN);
+        DrawText(("Final Score: " + to_string(winner.getHandSize())).c_str(),
+                 screenWidth / 2 - 100, screenHeight / 2 - 20, 25, YELLOW);
+
+        resetButton = {(float)(screenWidth / 2 - 150), (float)(screenHeight / 2 + 30), 300.0f, 50.0f};
+        bool mouseOverReset = CheckCollisionPointRec(GetMousePosition(), resetButton);
+
+        DrawRectangleRounded(resetButton, 0.3f, 8, mouseOverReset ? LIGHTGRAY : GRAY);
+        DrawRectangleRoundedLines(resetButton, 0.3f, 8, DARKGRAY);
+        DrawText("PLAY AGAIN",
+                 resetButton.x + resetButton.width / 2 - MeasureText("PLAY AGAIN", 25) / 2,
+                 resetButton.y + resetButton.height / 2 - 12, 25, BLACK);
+
+        DrawText("Press ESC to exit", screenWidth / 2 - 100, screenHeight / 2 + 100, 20, GRAY);
+
+        if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON) && mouseOverReset) {
+            game.reset();
+            currentScreen = SCREEN_MAIN_MENU;
         }
-        
-        if (isPlayable) {
-          DrawRectangle(x - 3, liftedY - 3, cardWidth + 6, cardHeight + 6, 
-                       Color{255, 255, 200, 80});
-          drawCardTexture(card, x, liftedY);
-          
-          DrawText("Click to Play", x + 5, liftedY - 20, 12, GREEN);
-        } else {
-          Texture2D tex;
-          string path = GetCardTexturePath(card);
-          string filename = path.substr(path.find_last_of("/") + 1);
-          tex = cardTextures.textures[filename];
-          
-          Rectangle src = {0, 0, (float)tex.width, (float)tex.height};
-          Rectangle dst = {(float)x, (float)liftedY, CARD_WIDTH, CARD_HEIGHT};
-          Vector2 origin = {0, 0};
-
-          DrawTexturePro(tex, src, dst, origin, 0.0f, Color{255, 255, 255, 153});
-          
-          DrawText("Cannot Play", x + 10, liftedY - 20, 12, RED);
+        if (IsKeyPressed(KEY_ENTER)) {
+            game.reset();
+            currentScreen = SCREEN_MAIN_MENU;
         }
-      }
-
-      int centerY = (screenHeight - CARD_HEIGHT) / 2;
-      
-      drawCardTexture(Card(), screenWidth / 2 - CARD_WIDTH - 20, centerY, true);
-      
-      drawCardTexture(game.getTopCard(), screenWidth / 2 + 20, centerY);
-      
-      DrawText("DECK", screenWidth / 2 - CARD_WIDTH - 20, centerY + CARD_HEIGHT + 10, 15, WHITE);
-      DrawText("DISCARD", screenWidth / 2 + 20, centerY + CARD_HEIGHT + 10, 15, WHITE);
-      
-      DrawText("INSTRUCTIONS:", 20, screenHeight - 100, 18, YELLOW);
-      DrawText("• Click a card to play it", 20, screenHeight - 80, 15, LIGHTGRAY);
-      DrawText("• Press D to draw a card", 20, screenHeight - 60, 15, LIGHTGRAY);
-      DrawText("• Press R/G/B/Y to choose Wild color", 20, screenHeight - 40, 15, LIGHTGRAY);
-      DrawText("• Press ESC to exit", 20, screenHeight - 20, 15, LIGHTGRAY);
-
-      handleInput();
-      game.advanceTurnIfNeeded();
-      
-    } else {
-      drawGameOver();
+        if (IsKeyPressed(KEY_ESCAPE)) {
+            currentScreen = SCREEN_EXIT;
+        }
     }
-  }
-
-  void drawGameOver() {
-    DrawRectangle(0, 0, screenWidth, screenHeight, Color{0, 0, 0, 200});
-    
-    Player &winner = game.getCurrentPlayer();
-    
-    DrawText("GAME OVER!", screenWidth / 2 - 150, screenHeight / 2 - 80, 50, RED);
-    DrawText(("Winner: " + winner.getName()).c_str(), screenWidth / 2 - 100, screenHeight / 2 - 20, 30, GREEN);
-    DrawText(("Final Score: " + to_string(winner.getHandSize())).c_str(), 
-             screenWidth / 2 - 100, screenHeight / 2 + 20, 25, YELLOW);
-    
-    DrawText("Press ENTER to return to main menu", screenWidth / 2 - 200, screenHeight / 2 + 80, 20, WHITE);
-    DrawText("Press ESC to exit", screenWidth / 2 - 100, screenHeight / 2 + 110, 20, GRAY);
-
-    if (IsKeyPressed(KEY_ENTER)) {
-      game.reset();
-      currentScreen = SCREEN_MAIN_MENU;
-    }
-    
-    if (IsKeyPressed(KEY_ESCAPE)) {
-      currentScreen = SCREEN_EXIT;
-    }
-  }
 };
 
 int main() {
-  Game game;
-  UnoGUI gui(game);
+    Game game;
+    UnoGUI gui(game);
+    gui.init();
 
-  gui.init();
+    while (!WindowShouldClose()) {
+        if (!gui.runFrame()) break;
+    }
 
-  while (!WindowShouldClose()) {
-    if (!gui.runFrame())
-      break;
-  }
-
-  gui.shutdown();
-  return 0;
+    gui.shutdown();
+    return 0;
 }
