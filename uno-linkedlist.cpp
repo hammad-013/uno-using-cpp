@@ -424,9 +424,9 @@ class Game {
     int direction;
     TurnState turnState = WAITING_FOR_INPUT;
     CardType pendingWildType;
-    bool hadDrawnThisTurn = false;
-    float turnStartTime = 0.0f;
-    float turnTimeLimit = 15.0f;
+    bool hasDrawnCard = false;
+    Card drawnCard;
+    bool canPlayDrawnCard = false;
 
 public:
     Game() : isGameOver(false), totalPlayers(4), direction(1) {
@@ -436,13 +436,11 @@ public:
         currentPlayer = players.getHead();
     }
 
-    float getTimeRemaining() const {
-        float elapsed = GetTime() - turnStartTime;
-        return max(0.0f, turnTimeLimit - elapsed);
+    bool getHasDrawnCard() const {
+        return hasDrawnCard;
     }
-
-    bool isTurnTimeExpired() const {
-        return getTimeRemaining() <= 0.0f;
+    bool getCanPlayDrawnCard() const {
+        return canPlayDrawnCard;
     }
 
     void start() {
@@ -541,44 +539,38 @@ public:
     }
 
     void beginTurn() {
-        turnState = WAITING_FOR_INPUT;
-        hadDrawnThisTurn = false;
-        turnStartTime = GetTime();
-    }
+    turnState = WAITING_FOR_INPUT;
+    hasDrawnCard = false;
+    canPlayDrawnCard = false;
+    drawnCard = Card();
+}
 
-    void autoPlayOrDraw() {
-        if (turnState != WAITING_FOR_INPUT || isWaitingForWildColor()) return;
-
-        Player& player = currentPlayer->getData();
-        int handSize = player.getHandSize();
-
-        for (int i = 0; i < handSize; i++) {
-            Card selected = player.peekCard(i);
-            if (isCardValid(selected) &&
-                !(selected.type == WILD_DRAW_FOUR && player.hasColor(currentColor))) {
-                handlePlay(i);
-                return;
-            }
-        }
-        handleDraw();
-    }
 
     bool isWaitingForInput() const { return turnState == WAITING_FOR_INPUT; }
 
     void handleDraw() {
-        if (hadDrawnThisTurn) return;
-
-        Player& player = currentPlayer->getData();
-        Card drawn = safeDraw();
-        player.addToHand(drawn);
-
-        if (isCardValid(drawn)) {
-        } else {
-            moveToNextPlayer();
-            turnState = TURN_FINISHED;
-        }
-        hadDrawnThisTurn = true;
+    if (hasDrawnCard) return;
+    
+    Player& player = currentPlayer->getData();
+    drawnCard = safeDraw();
+    player.addToHand(drawnCard);
+    hasDrawnCard = true;
+    
+    if (isCardValid(drawnCard)) {
+        canPlayDrawnCard = true;
+    } else {
+        canPlayDrawnCard = false;
+        moveToNextPlayer();
+        turnState = TURN_FINISHED;
     }
+}
+void passTurn() {
+    if (!hasDrawnCard || !canPlayDrawnCard) return;
+    
+    canPlayDrawnCard = false;
+    moveToNextPlayer();
+    turnState = TURN_FINISHED;
+}
 
     void advanceTurnIfNeeded() {
         if (turnState == TURN_FINISHED && !isGameOver) {
@@ -590,6 +582,17 @@ public:
         if (turnState != WAITING_FOR_INPUT || isWaitingForWildColor()) return false;
 
         Player& player = currentPlayer->getData();
+
+        if (hasDrawnCard) {
+        int drawnCardIndex = player.getHandSize() - 1;
+        if (cardIndex != drawnCardIndex) {
+            return false; 
+        }
+        if (!canPlayDrawnCard) {
+            return false; 
+        }
+    }
+
         Card selected = player.peekCard(cardIndex);
 
         if (!isCardValid(selected)) return false;
@@ -641,9 +644,22 @@ public:
     }
 };
 
+// struct CardTextures {
+//     unordered_map<string, Texture2D> textures;
+//     Texture2D back;
+// };
+
 struct CardTextures {
-    unordered_map<string, Texture2D> textures;
+    struct textureEntry {
+        char name[50];
+        Texture2D tex;
+    };
+    
+    textureEntry cards[60];
+    int cardCount;
     Texture2D back;
+    
+    CardTextures() : cardCount(0) {}
 };
 
 class UnoGUI {
@@ -656,7 +672,7 @@ class UnoGUI {
     Rectangle colorButtons[4];
     const char* colorNames[4] = {"Red", "Green", "Blue", "Yellow"};
     Color colorValues[4] = {RED, GREEN, BLUE, YELLOW};
-
+    Rectangle passButton;
 public:
     int screenWidth = 1440;
     int screenHeight = 900;
@@ -664,6 +680,7 @@ public:
     UnoGUI(Game& g) : game(g) {
         currentScreen = SCREEN_MAIN_MENU;
         drawButton = {0, 0, 150, 50};
+        passButton = {0, 0, 150, 50};
 
         int btnWidth = 140;
         int btnHeight = 60;
@@ -678,6 +695,7 @@ public:
 
     void loadCardTextures() {
         cardTextures.back = LoadTexture("assets/back.jpg");
+        cardTextures.cardCount = 0;
 
         vector<string> files = {
             "Blue_0.jpg", "Red_Reverse.jpg", "Green_Draw_2.jpg",
@@ -697,8 +715,16 @@ public:
         };
 
         for (auto& f : files) {
-            cardTextures.textures[f] = LoadTexture(("assets/" + f).c_str());
+        if (cardTextures.cardCount < 60) {
+            strcpy(cardTextures.cards[cardTextures.cardCount].name, f.c_str());
+            cardTextures.cards[cardTextures.cardCount].tex = LoadTexture(("assets/" + f).c_str());
+            cardTextures.cardCount++;
         }
+    }
+
+        // for (auto& f : files) {
+        //     cardTextures.textures[f] = LoadTexture(("assets/" + f).c_str());
+        // }
     }
 
     void drawCardTexture(const Card& card, int x, int y, bool faceDown = false) {
@@ -708,7 +734,13 @@ public:
         } else {
             string path = GetCardTexturePath(card);
             string filename = path.substr(path.find_last_of("/") + 1);
-            tex = cardTextures.textures[filename];
+            for (int i = 0; i < cardTextures.cardCount; i++) {
+            if (strcmp(cardTextures.cards[i].name, filename.c_str()) == 0) {
+                tex = cardTextures.cards[i].tex;
+                break;
+            }
+        }
+            // tex = cardTextures.textures[filename];
         }
 
         Rectangle src = {0, 0, (float)tex.width, (float)tex.height};
@@ -727,7 +759,7 @@ public:
 
     void beginFrame() {
         BeginDrawing();
-        ClearBackground(DARKGREEN);
+        ClearBackground({200, 30, 30, 255});
     }
 
     void endFrame() { EndDrawing(); }
@@ -779,7 +811,14 @@ public:
         
         string path = GetCardTexturePath(cards[i].card);
         string filename = path.substr(path.find_last_of("/") + 1);
-        Texture2D texture = cardTextures.textures[filename];
+        Texture2D texture;
+        for (int i = 0; i < cardTextures.cardCount; i++) {
+    if (strcmp(cardTextures.cards[i].name, filename.c_str()) == 0) {
+        texture = cardTextures.cards[i].tex;
+        break;
+    }
+}
+        // Texture2D texture = cardTextures.textures[filename];
         
         if (texture.id == 0) continue;
         
@@ -881,12 +920,6 @@ public:
         if (game.gameOver()) return;
 
         if (game.isWaitingForWildColor()) {
-            if (game.isTurnTimeExpired()) {
-                CardColor colors[] = {CARD_RED, CARD_GREEN, CARD_BLUE, CARD_YELLOW};
-                game.chooseWildColor(colors[randomValue(0, 3)]);
-                return;
-            }
-
             Vector2 mouse = GetMousePosition();
             for (int i = 0; i < 4; i++) {
                 if (CheckCollisionPointRec(mouse, colorButtons[i])) {
@@ -912,8 +945,21 @@ public:
         }
 
         if (!game.isWaitingForInput()) return;
-
         Player& player = game.getCurrentPlayer();
+    
+    if (game.getHasDrawnCard() && game.getCanPlayDrawnCard()) {
+        if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
+            if (CheckCollisionPointRec(GetMousePosition(), passButton)) {
+                game.passTurn();
+                return;
+            }
+        }
+        if (IsKeyPressed(KEY_P)) {
+            game.passTurn();
+            return;
+        }
+    }
+
         int handSize = player.getHandSize();
 
         for (int i = KEY_ZERO; i <= KEY_NINE; i++) {
@@ -946,33 +992,25 @@ public:
     }
 
     void drawGameplay() {
-        DrawText("UNO Game", 20, 20, 30, WHITE);
+        // DrawText("UNO Game", 20, 20, 30, WHITE);
 
         if (!game.gameOver()) {
             Player& currentPlayer = game.getCurrentPlayer();
             string playerName = currentPlayer.getName();
             DrawText(("Current Player: " + playerName).c_str(), 20, 60, 20, WHITE);
-            Card topCard = game.getTopCard();
-            DrawText(("Top Card: " + topCard.toString()).c_str(), 20, 90, 20, WHITE);
 
-            string currentColorStr;
-            switch (game.getCurrentColor()) {
-                case CARD_RED:    currentColorStr = "Red";    break;
-                case CARD_GREEN:  currentColorStr = "Green";  break;
-                case CARD_BLUE:   currentColorStr = "Blue";   break;
-                case CARD_YELLOW: currentColorStr = "Yellow"; break;
-                case WILD:        currentColorStr = "Wild";   break;
-            }
-            DrawText(("Current Color: " + currentColorStr).c_str(), 20, 120, 20, WHITE);
-            DrawText(("Hand Size: " + to_string(currentPlayer.getHandSize())).c_str(), 20, 150, 20, WHITE);
 
-            float timeRemaining = game.getTimeRemaining();
-            DrawText(("Time Left: " + to_string((int)ceil(timeRemaining)) + "s").c_str(),
-                     20, 180, 20, timeRemaining < 5.0f ? RED : WHITE);
-
-            if (game.isTurnTimeExpired() && game.isWaitingForInput()) {
-                game.autoPlayOrDraw();
-            }
+            if (game.getHasDrawnCard() && game.getCanPlayDrawnCard()) {
+        DrawRectangle(screenWidth / 2 - 200, 90, 400, 80, Color{50, 50, 50, 200});
+        DrawText("You drew a playable card!", screenWidth / 2 - 150, 100, 20, YELLOW);
+        DrawText("Click it to play or click PASS", screenWidth / 2 - 140, 130, 18, WHITE);
+        
+        passButton.x = screenWidth / 2 - 75;
+        passButton.y = 170;
+        bool mouseOverPass = CheckCollisionPointRec(GetMousePosition(), passButton);
+        DrawRectangleRounded(passButton, 0.3f, 8, mouseOverPass ? YELLOW : GRAY);
+        DrawText("PASS", passButton.x + 45, passButton.y + 15, 20, BLACK);
+    }
 
             int centerY = (screenHeight - CARD_HEIGHT) / 2 - 50;
             drawCardTexture(Card(), screenWidth / 2 - CARD_WIDTH - 20, centerY, true);
@@ -1019,7 +1057,14 @@ public:
                 if (!game.isCardValid(card)) {
                     string path = GetCardTexturePath(card);
                     string filename = path.substr(path.find_last_of("/") + 1);
-                    Texture2D tex = cardTextures.textures[filename];
+                    Texture2D tex;
+                    for (int i = 0; i < cardTextures.cardCount; i++) {
+    if (strcmp(cardTextures.cards[i].name, filename.c_str()) == 0) {
+        tex = cardTextures.cards[i].tex;
+        break;
+    }
+}
+                    // Texture2D tex = cardTextures.textures[filename];
                     Rectangle src = {0, 0, (float)tex.width, (float)tex.height};
                     Rectangle dst = {(float)x, (float)baseY, CARD_WIDTH, CARD_HEIGHT};
                     DrawTexturePro(tex, src, dst, {0, 0}, 0.0f, Color{255, 255, 255, 204});
@@ -1045,11 +1090,18 @@ public:
                 } else {
                     string path = GetCardTexturePath(card);
                     string filename = path.substr(path.find_last_of("/") + 1);
-                    Texture2D tex = cardTextures.textures[filename];
+                    Texture2D tex;
+                    for (int j = 0; j < cardTextures.cardCount; j++) {
+        if (strcmp(cardTextures.cards[j].name, filename.c_str()) == 0) {
+            tex = cardTextures.cards[j].tex;
+            break;
+        }
+    }
+                    // Texture2D tex = cardTextures.textures[filename];
                     Rectangle src = {0, 0, (float)tex.width, (float)tex.height};
                     Rectangle dst = {(float)x, (float)liftedY, CARD_WIDTH, CARD_HEIGHT};
                     DrawTexturePro(tex, src, dst, {0, 0}, 0.0f, Color{255, 255, 255, 153});
-                    DrawText("Cannot Play", x + 10, liftedY - 20, 12, RED);
+                    DrawText("Cannot Play", x + 10, liftedY - 20, 12, YELLOW);
                 }
             }
 
@@ -1057,7 +1109,7 @@ public:
             drawButton.y = screenHeight - 40;
 
             bool mouseOverDraw = CheckCollisionPointRec(GetMousePosition(), drawButton);
-            Color buttonColor = mouseOverDraw ? LIGHTGRAY : GRAY;
+            Color buttonColor = mouseOverDraw ? YELLOW : GRAY;
 
             DrawRectangleRounded(drawButton, 0.3f, 8, buttonColor);
             DrawRectangleRoundedLines(drawButton, 0.3f, 8, DARKGRAY);
