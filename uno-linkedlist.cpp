@@ -5,6 +5,7 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include <cstring>
 
 using namespace std;
 
@@ -749,19 +750,112 @@ public:
     }
 
     void drawMainMenu() {
-        DrawText("UNO", 600, 200, 80, YELLOW);
-        DrawText("Press ENTER to Start", 560, 320, 30, WHITE);
-        DrawText("Press ESC to Exit", 580, 370, 25, GRAY);
+    static float time = 0.0f;
+    time += GetFrameTime();
+    
+    DrawRectangleGradientV(0, 0, GetScreenWidth(), GetScreenHeight(), 
+                           Color{200, 30, 30, 255}, Color{180, 20, 20, 255});
+    
+    struct FloatingCard {
+        float x, y, rotation, speed, scale;
+        Card card;
+    };
+    
+    static FloatingCard cards[] = {
+        {120, 150, -15, 0.8f, 1.0f, Card(CARD_RED, NUMBER, 7)},
+        {280, 480, 10, 1.2f, 0.9f, Card(CARD_GREEN, NUMBER, 2)},
+        {900, 180, 20, 0.6f, 0.85f, Card(CARD_RED, NUMBER, 9)},
+        {1100, 250, -10, 1.0f, 1.0f, Card(CARD_BLUE, NUMBER, 0)},
+        {1150, 380, 15, 0.9f, 0.95f, Card(CARD_RED, DRAW_TWO)},
+        {1050, 600, -20, 0.7f, 1.1f, Card(CARD_YELLOW, NUMBER, 5)},
+        {800, 650, 25, 1.1f, 0.8f, Card(CARD_YELLOW, DRAW_TWO)},
+        {50, 750, 12, 0.85f, 0.9f, Card(CARD_GREEN, SKIP)}
+    };
+    
+    for (int i = 0; i < 8; i++) {
+        float floatval = sin(time * cards[i].speed + i) * 10.0f;
+        float cardX = cards[i].x;
+        float cardY = cards[i].y + floatval;
+        
+        string path = GetCardTexturePath(cards[i].card);
+        string filename = path.substr(path.find_last_of("/") + 1);
+        Texture2D texture = cardTextures.textures[filename];
+        
+        if (texture.id == 0) continue;
+        
+        float cardWidth = 100 * cards[i].scale;
+        float cardHeight = 150 * cards[i].scale;
+        
+        Vector2 origin = {cardWidth / 2, cardHeight / 2};
+        
+        Rectangle src = {0, 0, (float)texture.width, (float)texture.height};
+        Rectangle dst = {cardX, cardY, cardWidth, cardHeight};
+        DrawTexturePro(texture, src, dst, origin, cards[i].rotation, WHITE);
+    }
+    
+    const char* title = "UNO";
+    int titleSize = 120;
+    int titleWidth = MeasureText(title, titleSize);
+    int titleX = (GetScreenWidth() - titleWidth) / 2;
+    int titleY = 250;
+    
+    DrawText(title, titleX, titleY, titleSize, WHITE);
+    
+    
+    int centerX = GetScreenWidth() / 2;
+    int buttonWidth = 320;
+    int buttonHeight = 60;
+    int buttonY = 500;
+    int buttonSpacing = 75;
+    
+    struct MenuButton {
+        const char* text;
+        Color color;
+        Color hoverColor;
+        int yOffset;
+    };
+    
+    MenuButton buttons[] = {
+        {"START GAME", YELLOW, Color{255, 230, 0, 255}, 0},
+        {"HOW TO PLAY", BLUE, Color{50, 100, 180, 255}, buttonSpacing},
+        {"SETTINGS", GREEN, Color{0, 180, 80, 255}, buttonSpacing * 2}
+    };
+    
+    Vector2 mousePos = GetMousePosition();
+    
+    for (int i = 0; i < 3; i++) {
+    int by = buttonY + buttons[i].yOffset;
+    Rectangle buttonRect = {
+        (float)(centerX - buttonWidth/2), 
+        (float)by, 
+        (float)buttonWidth, 
+        (float)buttonHeight
+    };
+    
+    bool isHovered = CheckCollisionPointRec(mousePos, buttonRect);
+    Color buttonColor = isHovered ? buttons[i].hoverColor : buttons[i].color;
 
-        if (IsKeyPressed(KEY_ENTER)) {
+    
+    DrawRectangleRounded(buttonRect, 0.15f, 10, buttonColor);
+    
+    int textWidth = MeasureText(buttons[i].text, 28);
+    DrawText(buttons[i].text, centerX - textWidth/2, by + 16, 28, BLACK);
+    
+    if (isHovered && IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
+        if (i == 0) { 
             game.start();
             game.beginTurn();
             currentScreen = SCREEN_GAMEPLAY;
         }
-        if (IsKeyPressed(KEY_ESCAPE)) {
-            currentScreen = SCREEN_EXIT;
-        }
     }
+}
+    
+    DrawText("Press ESC to Exit", 10, GetScreenHeight() - 30, 20, BLACK);
+    
+    if (IsKeyPressed(KEY_ESCAPE)) {
+        currentScreen = SCREEN_EXIT;
+    }
+}
 
     void updateHoveredCard(const Player& player, int startX, int y, int cardWidth, int cardHeight, int spacing) {
         hoveredCardIndex = -1;
