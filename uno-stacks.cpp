@@ -73,3 +73,56 @@ public:
     }
 
 };
+~Stack()
+    {
+        Clear();
+    }
+
+    void push(T value)
+    {
+        Node<T>* newNode = new Node(value);
+        newNode->next = topNode;
+        topNode = newNode;
+        top++;
+    }
+
+    T pop()
+    {
+        if (isEmpty())
+        {
+            return T();
+        }
+        Node<T>* temp = topNode;
+        T value = topNode->data;
+        topNode = topNode->next;
+        delete temp;
+        top--;
+        return value;
+    }
+
+    T peek() const
+    {
+        if (isEmpty())
+        {
+            return T();
+        }
+        return topNode->data;
+    }
+
+    bool isEmpty() const
+    {
+        return topNode == nullptr;
+    }
+
+    int sizee() const
+    {
+        return top;
+    }
+
+    void Clear()
+    {
+        while (!isEmpty())
+        {
+            pop();
+        }
+    
