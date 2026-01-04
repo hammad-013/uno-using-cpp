@@ -238,3 +238,13 @@ public:
         }
         return value;
     }
+        bool isWild()
+    {
+        return (fullName == "Wild" || fullName == "Wild_Draw_4");
+    }
+
+    bool isSpecial()
+    {
+        string val = getValue();
+        return (val == "Skip" || val == "Reverse" || val == "Draw_2" || val == "Draw_4");
+    }
