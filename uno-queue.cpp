@@ -38,3 +38,8 @@ public:
         }
         return value;
     }
+bool isWild() const {
+        if (name == "WILD_NORMAL") return true;
+        if (name == "WILD_DRAW_FOUR") return true;
+        return false;
+    }
