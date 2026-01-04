@@ -209,9 +209,9 @@ public:
     CardColor color;
     CardType type;
     int number;
-
-    Card() : color(WILD), type(WILD_COLOR), number(-1) {}
-    Card(CardColor c, CardType t, int n = -1) : color(c), type(t), number(n) {}
+    int score;
+    Card() : color(WILD), type(WILD_COLOR), number(-1), score(0) {}
+    Card(CardColor c, CardType t, int s = 0, int n = -1) : color(c), type(t), number(n), score(s) {}
 
     string getColorString() const {
         switch (color) {
@@ -271,21 +271,21 @@ public:
     Deck() {
         CardColor colors[] = {CARD_RED, CARD_GREEN, CARD_BLUE, CARD_YELLOW};
         for (CardColor color : colors) {
-            cards.insertEnd(Card(color, NUMBER, 0));
+            cards.insertEnd(Card(color, NUMBER, 0, 0));
             for (int i = 1; i <= 9; ++i) {
-                cards.insertEnd(Card(color, NUMBER, i));
-                cards.insertEnd(Card(color, NUMBER, i));
+                cards.insertEnd(Card(color, NUMBER, i, i));
+                cards.insertEnd(Card(color, NUMBER, i, i));
             }
-            cards.insertEnd(Card(color, SKIP));
-            cards.insertEnd(Card(color, SKIP));
-            cards.insertEnd(Card(color, REVERSE));
-            cards.insertEnd(Card(color, REVERSE));
-            cards.insertEnd(Card(color, DRAW_TWO));
-            cards.insertEnd(Card(color, DRAW_TWO));
+            cards.insertEnd(Card(color, SKIP, 20));
+            cards.insertEnd(Card(color, SKIP, 20));
+            cards.insertEnd(Card(color, REVERSE, 20));
+            cards.insertEnd(Card(color, REVERSE, 20));
+            cards.insertEnd(Card(color, DRAW_TWO, 20));
+            cards.insertEnd(Card(color, DRAW_TWO, 20));
         }
         for (int i = 0; i < 4; ++i) {
-            cards.insertEnd(Card(WILD, WILD_COLOR));
-            cards.insertEnd(Card(WILD, WILD_DRAW_FOUR));
+            cards.insertEnd(Card(WILD, WILD_COLOR, 50));
+            cards.insertEnd(Card(WILD, WILD_DRAW_FOUR, 50));
         }
     }
 
@@ -365,13 +365,15 @@ class Player {
     LinkedList<Card> hand;
     string name;
     int id;
+    int score;
 
 public:
-    Player() : name(""), id(-1) {}
-    Player(string n, int i) : name(n), id(i) {}
+    Player() : name(""), id(-1), score(0) {}
+    Player(string n, int i) : name(n), id(i), score(0) {}
 
     string getName() const { return name; }
     int getId() const { return id; }
+    int getScore() const { return score; }
 
     int getHandSize() const {
         if (!hand.getHead()) return 0;
@@ -394,9 +396,16 @@ public:
         return false;
     }
 
-    void addToHand(Card c) { hand.insertEnd(c); }
+    void addToHand(Card c) { 
+        hand.insertEnd(c);
+        score += c.score; 
+    }
 
-    Card playCard(int index) { return hand.deleteAt(index); }
+    Card playCard(int index) { 
+        Card c =  hand.deleteAt(index); 
+        score -= c.score;
+        return c;
+    }
 
     Card peekCard(int index) const {
         Node<Card>* temp = hand.getHead();
@@ -427,6 +436,7 @@ class Game {
     bool hasDrawnCard = false;
     Card drawnCard;
     bool canPlayDrawnCard = false;
+    int playerScores[4] = {0, 0, 0, 0};
 
 public:
     Game() : isGameOver(false), totalPlayers(4), direction(1) {
@@ -436,9 +446,14 @@ public:
         currentPlayer = players.getHead();
     }
 
+    LinkedList<Player>& getPlayers() {
+        return players;
+    }
+
     bool getHasDrawnCard() const {
         return hasDrawnCard;
     }
+
     bool getCanPlayDrawnCard() const {
         return canPlayDrawnCard;
     }
@@ -584,6 +599,7 @@ void passTurn() {
             beginTurn();
         }
     }
+
 
     bool handlePlay(int cardIndex) {
     if (turnState != WAITING_FOR_INPUT || isWaitingForWildColor()) return false;
@@ -808,12 +824,12 @@ public:
     };
     
     static FloatingCard cards[] = {
-        {120, 150, -15, 0.8f, 1.0f, Card(CARD_RED, NUMBER, 7)},
-        {280, 480, 10, 1.2f, 0.9f, Card(CARD_GREEN, NUMBER, 2)},
-        {900, 180, 20, 0.6f, 0.85f, Card(CARD_RED, NUMBER, 9)},
-        {1100, 250, -10, 1.0f, 1.0f, Card(CARD_BLUE, NUMBER, 0)},
+        {120, 150, -15, 0.8f, 1.0f, Card(CARD_RED, NUMBER, 7, 7)},
+        {280, 480, 10, 1.2f, 0.9f, Card(CARD_GREEN, NUMBER, 2, 2)},
+        {900, 180, 20, 0.6f, 0.85f, Card(CARD_RED, NUMBER, 9, 9)},
+        {1100, 250, -10, 1.0f, 1.0f, Card(CARD_BLUE, NUMBER, 0, 0)},
         {1150, 380, 15, 0.9f, 0.95f, Card(CARD_RED, DRAW_TWO)},
-        {1050, 600, -20, 0.7f, 1.1f, Card(CARD_YELLOW, NUMBER, 5)},
+        {1050, 600, -20, 0.7f, 1.1f, Card(CARD_YELLOW, NUMBER, 5, 5)},
         {800, 650, 25, 1.1f, 0.8f, Card(CARD_YELLOW, DRAW_TWO)},
         {50, 750, 12, 0.85f, 0.9f, Card(CARD_GREEN, SKIP)}
     };
@@ -1219,7 +1235,7 @@ public:
     int gameOverSize = 100;
     int gameOverWidth = MeasureText(gameOverText, gameOverSize);
     int gameOverX = (GetScreenWidth() - gameOverWidth) / 2;
-    int gameOverY = 150;
+    int gameOverY = 100;
     
     DrawText(gameOverText, gameOverX + 4, gameOverY + 4, gameOverSize, Color{0, 0, 0, 150});
     DrawText(gameOverText, gameOverX, gameOverY, gameOverSize, Color{255, 215, 0, 255});
@@ -1233,19 +1249,47 @@ public:
     DrawText(winnerText.c_str(), winnerX + 2, winnerY + 2, winnerSize, Color{0, 0, 0, 150});
     DrawText(winnerText.c_str(), winnerX, winnerY, winnerSize, WHITE);
     
-    string scoreText = "Final Cards: " + to_string(winner.getHandSize());
-    int scoreSize = 30;
-    int scoreWidth = MeasureText(scoreText.c_str(), scoreSize);
-    int scoreX = (GetScreenWidth() - scoreWidth) / 2;
-    int scoreY = winnerY + 70;
+    int scoreboardY = winnerY + 80;
+    int lineHeight = 35;
+    const char* scoreTitle = "FINAL SCORES";
+    int scoreTitleWidth = MeasureText(scoreTitle, 28);
+    DrawText(scoreTitle, (GetScreenWidth() - scoreTitleWidth) / 2 + 2, scoreboardY + 2, 28, Color{0, 0, 0, 150});
+    DrawText(scoreTitle, (GetScreenWidth() - scoreTitleWidth) / 2, scoreboardY, 28, Color{200, 200, 200, 255});
     
-    DrawText(scoreText.c_str(), scoreX + 2, scoreY + 2, scoreSize, Color{0, 0, 0, 150});
-    DrawText(scoreText.c_str(), scoreX, scoreY, scoreSize, Color{200, 200, 200, 255});
+    scoreboardY += 45;
+    
+    Node<Player>* temp = game.getPlayers().getHead();
+    if (temp) {
+        do {
+            Player& p = temp->getData();
+            int handValue = p.getScore();
+            
+            string playerScore;
+            Color scoreColor;
+            
+            if (handValue == 0) {
+                playerScore = p.getName() + ": 0 pts";
+                scoreColor = GREEN;
+            } else {
+                playerScore = p.getName() + ": -" + to_string(handValue) + " pts";
+                scoreColor = YELLOW; 
+            }
+            
+            int textWidth = MeasureText(playerScore.c_str(), 24);
+            int textX = (GetScreenWidth() - textWidth) / 2;
+            
+            DrawText(playerScore.c_str(), textX + 2, scoreboardY + 2, 24, Color{0, 0, 0, 150});
+            DrawText(playerScore.c_str(), textX, scoreboardY, 24, scoreColor);
+            
+            scoreboardY += lineHeight;
+            temp = temp->getNext();
+        } while (temp != game.getPlayers().getHead());
+    }
     
     int centerX = GetScreenWidth() / 2;
     int buttonWidth = 320;
     int buttonHeight = 60;
-    int buttonY = 500;
+    int buttonY = scoreboardY + 30;
     int buttonSpacing = 75;
     
     struct MenuButton {
