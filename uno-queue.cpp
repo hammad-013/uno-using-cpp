@@ -43,3 +43,19 @@ bool isWild() const {
         if (name == "WILD_DRAW_FOUR") return true;
         return false;
     }
+bool canPlayOn(const Card& top, const string& forcedColor) const {
+        if (isWild()) return true;
+
+        string myColor = getColor();
+        string topColor = top.getColor();
+
+        if (forcedColor != "") {
+            if (myColor == forcedColor) return true;
+            return false;
+        }
+
+        if (myColor == topColor) return true;
+        if (getValue() == top.getValue()) return true;
+
+        return false;
+    }
