@@ -169,3 +169,72 @@ public:
         }
     }
 };
+class Card
+{
+public:
+    string fullName;
+
+    Card() : fullName("") {}
+    Card(string name) : fullName(name) {}
+
+    string getColor()
+    {
+        if (fullName == "Wild" || fullName == "Wild_Draw_4")
+        {
+            return "Wild";
+        }
+        int underscorePos = -1;
+        for (int i = 0; i < fullName.length(); i++)
+        {
+            if (fullName[i] == '_')
+            {
+                underscorePos = i;
+                break;
+            }
+        }
+
+        if (underscorePos == -1)
+        {
+            return "";
+        }
+
+        string color = "";
+        for (int i = 0; i < underscorePos; i++)
+        {
+            color += fullName[i];
+        }
+        return color;
+    }
+
+    string getValue()
+    {
+        if (fullName == "Wild")
+        {
+            return "Wild";
+        }
+        if (fullName == "Wild_Draw_4")
+        {
+            return "Draw_4";
+        }
+        int underscorePos = -1;
+        for (int i = 0; i < fullName.length(); i++)
+        {
+            if (fullName[i] == '_')
+            {
+                underscorePos = i;
+                break;
+            }
+        }
+
+        if (underscorePos == -1)
+        {
+            return fullName;
+        }
+
+        string value = "";
+        for (int i = underscorePos + 1; i < fullName.length(); i++)
+        {
+            value += fullName[i];
+        }
+        return value;
+    }
