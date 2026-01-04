@@ -209,9 +209,9 @@ public:
     CardColor color;
     CardType type;
     int number;
-
-    Card() : color(WILD), type(WILD_COLOR), number(-1) {}
-    Card(CardColor c, CardType t, int n = -1) : color(c), type(t), number(n) {}
+    int score;
+    Card() : color(WILD), type(WILD_COLOR), number(-1), score(0) {}
+    Card(CardColor c, CardType t, int s = 0, int n = -1) : color(c), type(t), number(n), score(s) {}
 
     string getColorString() const {
         switch (color) {
@@ -271,21 +271,21 @@ public:
     Deck() {
         CardColor colors[] = {CARD_RED, CARD_GREEN, CARD_BLUE, CARD_YELLOW};
         for (CardColor color : colors) {
-            cards.insertEnd(Card(color, NUMBER, 0));
+            cards.insertEnd(Card(color, NUMBER, 0, 0));
             for (int i = 1; i <= 9; ++i) {
-                cards.insertEnd(Card(color, NUMBER, i));
-                cards.insertEnd(Card(color, NUMBER, i));
+                cards.insertEnd(Card(color, NUMBER, i, i));
+                cards.insertEnd(Card(color, NUMBER, i, i));
             }
-            cards.insertEnd(Card(color, SKIP));
-            cards.insertEnd(Card(color, SKIP));
-            cards.insertEnd(Card(color, REVERSE));
-            cards.insertEnd(Card(color, REVERSE));
-            cards.insertEnd(Card(color, DRAW_TWO));
-            cards.insertEnd(Card(color, DRAW_TWO));
+            cards.insertEnd(Card(color, SKIP, 20));
+            cards.insertEnd(Card(color, SKIP, 20));
+            cards.insertEnd(Card(color, REVERSE, 20));
+            cards.insertEnd(Card(color, REVERSE, 20));
+            cards.insertEnd(Card(color, DRAW_TWO, 20));
+            cards.insertEnd(Card(color, DRAW_TWO, 20));
         }
         for (int i = 0; i < 4; ++i) {
-            cards.insertEnd(Card(WILD, WILD_COLOR));
-            cards.insertEnd(Card(WILD, WILD_DRAW_FOUR));
+            cards.insertEnd(Card(WILD, WILD_COLOR, 50));
+            cards.insertEnd(Card(WILD, WILD_DRAW_FOUR, 50));
         }
     }
 
@@ -365,13 +365,15 @@ class Player {
     LinkedList<Card> hand;
     string name;
     int id;
+    int score;
 
 public:
-    Player() : name(""), id(-1) {}
-    Player(string n, int i) : name(n), id(i) {}
+    Player() : name(""), id(-1), score(0) {}
+    Player(string n, int i) : name(n), id(i), score(0) {}
 
     string getName() const { return name; }
     int getId() const { return id; }
+    int getScore() const { return score; }
 
     int getHandSize() const {
         if (!hand.getHead()) return 0;
@@ -394,9 +396,16 @@ public:
         return false;
     }
 
-    void addToHand(Card c) { hand.insertEnd(c); }
+    void addToHand(Card c) { 
+        hand.insertEnd(c);
+        score += c.score; 
+    }
 
-    Card playCard(int index) { return hand.deleteAt(index); }
+    Card playCard(int index) { 
+        Card c =  hand.deleteAt(index); 
+        score -= c.score;
+        return c;
+    }
 
     Card peekCard(int index) const {
         Node<Card>* temp = hand.getHead();
@@ -427,6 +436,7 @@ class Game {
     bool hasDrawnCard = false;
     Card drawnCard;
     bool canPlayDrawnCard = false;
+    int playerScores[4] = {0, 0, 0, 0};
 
 public:
     Game() : isGameOver(false), totalPlayers(4), direction(1) {
@@ -436,9 +446,14 @@ public:
         currentPlayer = players.getHead();
     }
 
+    LinkedList<Player>& getPlayers() {
+        return players;
+    }
+
     bool getHasDrawnCard() const {
         return hasDrawnCard;
     }
+
     bool getCanPlayDrawnCard() const {
         return canPlayDrawnCard;
     }
@@ -491,32 +506,38 @@ public:
     }
 
     bool playSpecialCard(Card playedCard) {
-        if (playedCard.color != WILD) {
-            currentColor = playedCard.color;
-        }
+    if (playedCard.color != WILD) {
+        currentColor = playedCard.color;
+    }
 
-        if (playedCard.type == REVERSE) {
-            direction *= -1;
-            return false;
-        }
-        if (playedCard.type == SKIP) {
-            moveToNextPlayer();
-            return true;
-        }
-        if (playedCard.type == DRAW_TWO) {
-            Node<Player>* target = (direction == 1) ? currentPlayer->getNext() : currentPlayer->getPrev();
-            target->getData().addToHand(safeDraw());
-            target->getData().addToHand(safeDraw());
-            moveToNextPlayer();
-            return true;
-        }
-        if (playedCard.type == WILD_COLOR || playedCard.type == WILD_DRAW_FOUR) {
-            turnState = WAITING_FOR_WILD_COLOR;
-            pendingWildType = playedCard.type;
-            return false;
-        }
+    if (playedCard.type == REVERSE) {
+        direction *= -1;
         return false;
     }
+    
+    if (playedCard.type == SKIP) {
+        moveToNextPlayer(); 
+        moveToNextPlayer();
+        return true;
+    }
+    
+    if (playedCard.type == DRAW_TWO) {
+        Node<Player>* target = (direction == 1) ? currentPlayer->getNext() : currentPlayer->getPrev();
+        target->getData().addToHand(safeDraw());
+        target->getData().addToHand(safeDraw());
+        moveToNextPlayer();
+        moveToNextPlayer(); 
+        return true; 
+    }
+    
+    if (playedCard.type == WILD_COLOR || playedCard.type == WILD_DRAW_FOUR) {
+        turnState = WAITING_FOR_WILD_COLOR;
+        pendingWildType = playedCard.type;
+        return false; 
+    }
+    
+    return false; 
+}
 
     bool isWaitingForWildColor() const { return turnState == WAITING_FOR_WILD_COLOR; }
 
@@ -529,6 +550,7 @@ public:
             for (int i = 0; i < 4; i++) {
                 target->getData().addToHand(safeDraw());
             }
+            moveToNextPlayer();
             moveToNextPlayer();
         } else {
             moveToNextPlayer();
@@ -578,12 +600,13 @@ void passTurn() {
         }
     }
 
+
     bool handlePlay(int cardIndex) {
-        if (turnState != WAITING_FOR_INPUT || isWaitingForWildColor()) return false;
+    if (turnState != WAITING_FOR_INPUT || isWaitingForWildColor()) return false;
 
-        Player& player = currentPlayer->getData();
+    Player& player = currentPlayer->getData();
 
-        if (hasDrawnCard) {
+    if (hasDrawnCard) {
         int drawnCardIndex = player.getHandSize() - 1;
         if (cardIndex != drawnCardIndex) {
             return false; 
@@ -593,31 +616,38 @@ void passTurn() {
         }
     }
 
-        Card selected = player.peekCard(cardIndex);
+    Card selected = player.peekCard(cardIndex);
 
-        if (!isCardValid(selected)) return false;
-        if (selected.type == WILD_DRAW_FOUR && player.hasColor(currentColor)) return false;
+    if (!isCardValid(selected)) return false;
+    if (selected.type == WILD_DRAW_FOUR && player.hasColor(currentColor)) return false;
 
-        Card playedCard = player.playCard(cardIndex);
-        discardPile.addCard(playedCard);
+    Card playedCard = player.playCard(cardIndex);
+    
+    discardPile.addCard(playedCard);
 
-        bool skipHandled = playSpecialCard(playedCard);
+    hasDrawnCard = false;
+    canPlayDrawnCard = false;
 
-        if (player.getHandSize() == 0) {
-            isGameOver = true;
-            turnState = GAME_OVER;
-            return true;
-        }
-
-        if (!skipHandled && !isWaitingForWildColor()) {
-            moveToNextPlayer();
-        }
-
-        if (!isWaitingForWildColor()) {
-            turnState = TURN_FINISHED;
-        }
+    if (player.getHandSize() == 0) {
+        isGameOver = true;
+        turnState = GAME_OVER;
         return true;
     }
+
+    bool skipHandled = playSpecialCard(playedCard);
+    
+
+    if (!skipHandled && !isWaitingForWildColor()) {
+        moveToNextPlayer();
+    }
+
+
+    if (!isWaitingForWildColor()) {
+        turnState = TURN_FINISHED;
+    }
+    
+    return true;
+}
 
     bool gameOver() const { return isGameOver; }
 
@@ -794,12 +824,12 @@ public:
     };
     
     static FloatingCard cards[] = {
-        {120, 150, -15, 0.8f, 1.0f, Card(CARD_RED, NUMBER, 7)},
-        {280, 480, 10, 1.2f, 0.9f, Card(CARD_GREEN, NUMBER, 2)},
-        {900, 180, 20, 0.6f, 0.85f, Card(CARD_RED, NUMBER, 9)},
-        {1100, 250, -10, 1.0f, 1.0f, Card(CARD_BLUE, NUMBER, 0)},
+        {120, 150, -15, 0.8f, 1.0f, Card(CARD_RED, NUMBER, 7, 7)},
+        {280, 480, 10, 1.2f, 0.9f, Card(CARD_GREEN, NUMBER, 2, 2)},
+        {900, 180, 20, 0.6f, 0.85f, Card(CARD_RED, NUMBER, 9, 9)},
+        {1100, 250, -10, 1.0f, 1.0f, Card(CARD_BLUE, NUMBER, 0, 0)},
         {1150, 380, 15, 0.9f, 0.95f, Card(CARD_RED, DRAW_TWO)},
-        {1050, 600, -20, 0.7f, 1.1f, Card(CARD_YELLOW, NUMBER, 5)},
+        {1050, 600, -20, 0.7f, 1.1f, Card(CARD_YELLOW, NUMBER, 5, 5)},
         {800, 650, 25, 1.1f, 0.8f, Card(CARD_YELLOW, DRAW_TWO)},
         {50, 750, 12, 0.85f, 0.9f, Card(CARD_GREEN, SKIP)}
     };
@@ -1008,7 +1038,7 @@ public:
         passButton.x = screenWidth / 2 - 75;
         passButton.y = 170;
         bool mouseOverPass = CheckCollisionPointRec(GetMousePosition(), passButton);
-        DrawRectangleRounded(passButton, 0.3f, 8, mouseOverPass ? YELLOW : GRAY);
+        DrawRectangleRounded(passButton, 0.3f, 8, mouseOverPass ? YELLOW : DARKGREEN);
         DrawText("PASS", passButton.x + 45, passButton.y + 15, 20, BLACK);
     }
 
@@ -1109,7 +1139,7 @@ public:
             drawButton.y = screenHeight - 40;
 
             bool mouseOverDraw = CheckCollisionPointRec(GetMousePosition(), drawButton);
-            Color buttonColor = mouseOverDraw ? YELLOW : GRAY;
+            Color buttonColor = mouseOverDraw ? YELLOW : DARKGREEN;
 
             DrawRectangleRounded(drawButton, 0.3f, 8, buttonColor);
             DrawRectangleRoundedLines(drawButton, 0.3f, 8, DARKGRAY);
@@ -1147,37 +1177,186 @@ public:
     }
 
     void drawGameOver() {
-        DrawRectangle(0, 0, screenWidth, screenHeight, Color{0, 0, 0, 200});
-
-        Player& winner = game.getCurrentPlayer();
-        DrawText("GAME OVER!", screenWidth / 2 - 150, screenHeight / 2 - 120, 50, RED);
-        DrawText(("Winner: " + winner.getName()).c_str(), screenWidth / 2 - 100, screenHeight / 2 - 60, 30, GREEN);
-        DrawText(("Final Score: " + to_string(winner.getHandSize())).c_str(),
-                 screenWidth / 2 - 100, screenHeight / 2 - 20, 25, YELLOW);
-
-        resetButton = {(float)(screenWidth / 2 - 150), (float)(screenHeight / 2 + 30), 300.0f, 50.0f};
-        bool mouseOverReset = CheckCollisionPointRec(GetMousePosition(), resetButton);
-
-        DrawRectangleRounded(resetButton, 0.3f, 8, mouseOverReset ? LIGHTGRAY : GRAY);
-        DrawRectangleRoundedLines(resetButton, 0.3f, 8, DARKGRAY);
-        DrawText("PLAY AGAIN",
-                 resetButton.x + resetButton.width / 2 - MeasureText("PLAY AGAIN", 25) / 2,
-                 resetButton.y + resetButton.height / 2 - 12, 25, BLACK);
-
-        DrawText("Press ESC to exit", screenWidth / 2 - 100, screenHeight / 2 + 100, 20, GRAY);
-
-        if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON) && mouseOverReset) {
-            game.reset();
-            currentScreen = SCREEN_MAIN_MENU;
+    static float time = 0.0f;
+    time += GetFrameTime();
+    
+    DrawRectangleGradientV(0, 0, GetScreenWidth(), GetScreenHeight(), 
+                           Color{200, 30, 30, 255}, Color{180, 20, 20, 255});
+    
+    struct FloatingCard {
+        float x, y, rotation, speed, scale;
+        Card card;
+    };
+    
+    static FloatingCard cards[] = {
+        {120, 150, -15, 0.8f, 1.0f, Card(CARD_RED, NUMBER, 7)},
+        {280, 480, 10, 1.2f, 0.9f, Card(CARD_GREEN, NUMBER, 2)},
+        {900, 180, 20, 0.6f, 0.85f, Card(CARD_RED, NUMBER, 9)},
+        {1100, 250, -10, 1.0f, 1.0f, Card(CARD_BLUE, NUMBER, 0)},
+        {1150, 380, 15, 0.9f, 0.95f, Card(CARD_RED, DRAW_TWO)},
+        {1050, 600, -20, 0.7f, 1.1f, Card(CARD_YELLOW, NUMBER, 5)},
+        {800, 650, 25, 1.1f, 0.8f, Card(CARD_YELLOW, DRAW_TWO)},
+        {50, 750, 12, 0.85f, 0.9f, Card(CARD_GREEN, SKIP)}
+    };
+    
+    for (int i = 0; i < 8; i++) {
+        float floatval = sin(time * cards[i].speed + i) * 10.0f;
+        float cardX = cards[i].x;
+        float cardY = cards[i].y + floatval;
+        
+        string path = GetCardTexturePath(cards[i].card);
+        string filename = path.substr(path.find_last_of("/") + 1);
+        Texture2D texture = cardTextures.back;
+        for (int j = 0; j < cardTextures.cardCount; j++) {
+            if (strcmp(cardTextures.cards[j].name, filename.c_str()) == 0) {
+                texture = cardTextures.cards[j].tex;
+                break;
+            }
         }
-        if (IsKeyPressed(KEY_ENTER)) {
-            game.reset();
-            currentScreen = SCREEN_MAIN_MENU;
-        }
-        if (IsKeyPressed(KEY_ESCAPE)) {
-            currentScreen = SCREEN_EXIT;
+        
+        if (texture.id == 0) continue;
+        
+        float cardWidth = 100 * cards[i].scale;
+        float cardHeight = 150 * cards[i].scale;
+        
+        Vector2 origin = {cardWidth / 2, cardHeight / 2};
+        
+        Rectangle src = {0, 0, (float)texture.width, (float)texture.height};
+        Rectangle dst = {cardX, cardY, cardWidth, cardHeight};
+        DrawTexturePro(texture, src, dst, origin, cards[i].rotation, WHITE);
+    }
+    
+    DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), Color{0, 0, 0, 120});
+    
+    Player& winner = game.getCurrentPlayer();
+    string winnerName = winner.getName();
+    
+    const char* gameOverText = "GAME OVER!";
+    int gameOverSize = 100;
+    int gameOverWidth = MeasureText(gameOverText, gameOverSize);
+    int gameOverX = (GetScreenWidth() - gameOverWidth) / 2;
+    int gameOverY = 100;
+    
+    DrawText(gameOverText, gameOverX + 4, gameOverY + 4, gameOverSize, Color{0, 0, 0, 150});
+    DrawText(gameOverText, gameOverX, gameOverY, gameOverSize, Color{255, 215, 0, 255});
+    
+    string winnerText = winnerName + " WINS!";
+    int winnerSize = 50;
+    int winnerWidth = MeasureText(winnerText.c_str(), winnerSize);
+    int winnerX = (GetScreenWidth() - winnerWidth) / 2;
+    int winnerY = gameOverY + 120;
+    
+    DrawText(winnerText.c_str(), winnerX + 2, winnerY + 2, winnerSize, Color{0, 0, 0, 150});
+    DrawText(winnerText.c_str(), winnerX, winnerY, winnerSize, WHITE);
+    
+    int scoreboardY = winnerY + 80;
+    int lineHeight = 35;
+    const char* scoreTitle = "FINAL SCORES";
+    int scoreTitleWidth = MeasureText(scoreTitle, 28);
+    DrawText(scoreTitle, (GetScreenWidth() - scoreTitleWidth) / 2 + 2, scoreboardY + 2, 28, Color{0, 0, 0, 150});
+    DrawText(scoreTitle, (GetScreenWidth() - scoreTitleWidth) / 2, scoreboardY, 28, Color{200, 200, 200, 255});
+    
+    scoreboardY += 45;
+    
+    Node<Player>* temp = game.getPlayers().getHead();
+    if (temp) {
+        do {
+            Player& p = temp->getData();
+            int handValue = p.getScore();
+            
+            string playerScore;
+            Color scoreColor;
+            
+            if (handValue == 0) {
+                playerScore = p.getName() + ": 0 pts";
+                scoreColor = GREEN;
+            } else {
+                playerScore = p.getName() + ": -" + to_string(handValue) + " pts";
+                scoreColor = YELLOW; 
+            }
+            
+            int textWidth = MeasureText(playerScore.c_str(), 24);
+            int textX = (GetScreenWidth() - textWidth) / 2;
+            
+            DrawText(playerScore.c_str(), textX + 2, scoreboardY + 2, 24, Color{0, 0, 0, 150});
+            DrawText(playerScore.c_str(), textX, scoreboardY, 24, scoreColor);
+            
+            scoreboardY += lineHeight;
+            temp = temp->getNext();
+        } while (temp != game.getPlayers().getHead());
+    }
+    
+    int centerX = GetScreenWidth() / 2;
+    int buttonWidth = 320;
+    int buttonHeight = 60;
+    int buttonY = scoreboardY + 30;
+    int buttonSpacing = 75;
+    
+    struct MenuButton {
+        const char* text;
+        Color color;
+        Color hoverColor;
+        int yOffset;
+    };
+    
+    MenuButton buttons[] = {
+        {"PLAY AGAIN", YELLOW, Color{255, 230, 0, 255}, 0},
+        {"MAIN MENU", BLUE, Color{50, 100, 180, 255}, buttonSpacing},
+        {"EXIT GAME", RED, Color{220, 50, 50, 255}, buttonSpacing * 2}
+    };
+    
+    Vector2 mousePos = GetMousePosition();
+    
+    for (int i = 0; i < 3; i++) {
+        int by = buttonY + buttons[i].yOffset;
+        Rectangle buttonRect = {
+            (float)(centerX - buttonWidth/2), 
+            (float)by, 
+            (float)buttonWidth, 
+            (float)buttonHeight
+        };
+        
+        bool isHovered = CheckCollisionPointRec(mousePos, buttonRect);
+        Color buttonColor = isHovered ? buttons[i].hoverColor : buttons[i].color;
+        
+        DrawRectangleRounded(buttonRect, 0.15f, 10, buttonColor);
+        
+        DrawRectangleRoundedLines(buttonRect, 0.15f, 10, Color{0, 0, 0, 100});
+        
+        int textWidth = MeasureText(buttons[i].text, 28);
+        DrawText(buttons[i].text, centerX - textWidth/2, by + 16, 28, BLACK);
+        
+        if (isHovered && IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
+            if (i == 0) { 
+                game.reset();
+                currentScreen = SCREEN_GAMEPLAY;
+            } else if (i == 1) {
+                game.reset();
+                currentScreen = SCREEN_MAIN_MENU;
+            } else if (i == 2) {
+                currentScreen = SCREEN_EXIT;
+            }
         }
     }
+    
+    DrawText("Press ENTER for Play Again  |  ESC to Exit", 
+             GetScreenWidth() / 2 - 220, 
+             GetScreenHeight() - 40, 
+             18, 
+             Color{200, 200, 200, 255});
+    
+    if (IsKeyPressed(KEY_ENTER)) {
+        game.reset();
+        currentScreen = SCREEN_GAMEPLAY;
+    }
+    if (IsKeyPressed(KEY_ESCAPE)) {
+        currentScreen = SCREEN_EXIT;
+    }
+    if (IsKeyPressed(KEY_M)) {
+        game.reset();
+        currentScreen = SCREEN_MAIN_MENU;
+    }
+}
 };
 
 int main() {
