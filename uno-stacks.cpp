@@ -308,4 +308,30 @@ public:
 
         return result;
     }
+bool removeCard(string cardToRemove)
+    {
+        Stack<string> temp;
+        bool found = false;
 
+        while (!cards.isEmpty())
+        {
+            string card = cards.pop();
+            if (card == cardToRemove && !found)
+            {
+                found = true;
+                break;
+            }
+            else
+            {
+                temp.push(card);
+            }
+        }
+
+        while (!temp.isEmpty())
+        {
+            cards.push(temp.pop());
+        }
+
+        return found;
+    }
+};
