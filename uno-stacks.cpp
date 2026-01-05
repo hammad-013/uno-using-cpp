@@ -263,3 +263,23 @@ public:
         return (getColor() == topCard.getColor() || getValue() == topCard.getValue());
     }
 };
+class Hand
+{
+private:
+    Stack<string> cards;
+
+public:
+    void addCard(string card)
+    {
+        cards.push(card);
+    }
+
+    int sizee()
+    {
+        return cards.sizee();
+    }
+
+    bool isEmpty()
+    {
+        return cards.isEmpty();
+    }
