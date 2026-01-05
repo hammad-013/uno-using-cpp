@@ -248,3 +248,18 @@ public:
         string val = getValue();
         return (val == "Skip" || val == "Reverse" || val == "Draw_2" || val == "Draw_4");
     }
+     bool canPlayOn(Card topCard, string currentColor)
+    {
+        if (isWild())
+        {
+            return true;
+        }
+
+        if (topCard.isWild())
+        {
+            return (getColor() == currentColor);
+        }
+
+        return (getColor() == topCard.getColor() || getValue() == topCard.getValue());
+    }
+};
