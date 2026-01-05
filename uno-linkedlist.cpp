@@ -3,7 +3,6 @@
 #include <iostream>
 #include <random>
 #include <string>
-#include <unordered_map>
 #include <vector>
 #include <cstring>
 
@@ -315,8 +314,8 @@ public:
             current = current->getNext();
         } while (current != cards.getHead());
 
-        for (size_t i = tempCards.size() - 1; i > 0; --i) {
-            size_t j = randomValue(0, (int)i);
+        for (int i = tempCards.size() - 1; i > 0; --i) {
+            int j = randomValue(0, (int)i);
             swap(tempCards[i], tempCards[j]);
         }
 
@@ -674,11 +673,6 @@ void passTurn() {
     }
 };
 
-// struct CardTextures {
-//     unordered_map<string, Texture2D> textures;
-//     Texture2D back;
-// };
-
 struct CardTextures {
     struct textureEntry {
         char name[50];
@@ -751,10 +745,6 @@ public:
             cardTextures.cardCount++;
         }
     }
-
-        // for (auto& f : files) {
-        //     cardTextures.textures[f] = LoadTexture(("assets/" + f).c_str());
-        // }
     }
 
     void drawCardTexture(const Card& card, int x, int y, bool faceDown = false) {
@@ -770,7 +760,6 @@ public:
                 break;
             }
         }
-            // tex = cardTextures.textures[filename];
         }
 
         Rectangle src = {0, 0, (float)tex.width, (float)tex.height};
@@ -848,7 +837,6 @@ public:
         break;
     }
 }
-        // Texture2D texture = cardTextures.textures[filename];
         
         if (texture.id == 0) continue;
         
@@ -947,35 +935,31 @@ public:
     }
 
     void handleInput() {
-        if (game.gameOver()) return;
+    if (game.gameOver()) return;
 
-        if (game.isWaitingForWildColor()) {
-            Vector2 mouse = GetMousePosition();
-            for (int i = 0; i < 4; i++) {
-                if (CheckCollisionPointRec(mouse, colorButtons[i])) {
-                    if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
-                        CardColor chosen;
-                        switch (i) {
-                            case 0: chosen = CARD_RED;    break;
-                            case 1: chosen = CARD_GREEN;  break;
-                            case 2: chosen = CARD_BLUE;   break;
-                            case 3: chosen = CARD_YELLOW; break;
-                        }
-                        game.chooseWildColor(chosen);
-                        return;
+    if (game.isWaitingForWildColor()) {
+        Vector2 mouse = GetMousePosition();
+        for (int i = 0; i < 4; i++) {
+            if (CheckCollisionPointRec(mouse, colorButtons[i])) {
+                if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
+                    CardColor chosen;
+                    switch (i) {
+                        case 0: chosen = CARD_RED;    break;
+                        case 1: chosen = CARD_GREEN;  break;
+                        case 2: chosen = CARD_BLUE;   break;
+                        case 3: chosen = CARD_YELLOW; break;
                     }
+                    game.chooseWildColor(chosen);
+                    return;
                 }
             }
-
-            if (IsKeyPressed(KEY_R)) game.chooseWildColor(CARD_RED);
-            if (IsKeyPressed(KEY_G)) game.chooseWildColor(CARD_GREEN);
-            if (IsKeyPressed(KEY_B)) game.chooseWildColor(CARD_BLUE);
-            if (IsKeyPressed(KEY_Y)) game.chooseWildColor(CARD_YELLOW);
-            return;
         }
 
-        if (!game.isWaitingForInput()) return;
-        Player& player = game.getCurrentPlayer();
+        return;
+    }
+
+    if (!game.isWaitingForInput()) return;
+    Player& player = game.getCurrentPlayer();
     
     if (game.getHasDrawnCard() && game.getCanPlayDrawnCard()) {
         if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
@@ -984,42 +968,32 @@ public:
                 return;
             }
         }
-        if (IsKeyPressed(KEY_P)) {
-            game.passTurn();
+    }
+
+    int handSize = player.getHandSize();
+
+
+    if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
+        if (CheckCollisionPointRec(GetMousePosition(), drawButton)) {
+            game.handleDraw();
             return;
         }
-    }
-
-        int handSize = player.getHandSize();
-
-        for (int i = KEY_ZERO; i <= KEY_NINE; i++) {
-            if (IsKeyPressed(i)) {
-                int index = i - KEY_ZERO;
-                if (index < handSize) {
-                    game.handlePlay(index);
+        
+        if (hoveredCardIndex != -1 && hoveredCardIndex < handSize) {
+            Card selected = player.peekCard(hoveredCardIndex);
+            if (game.isCardValid(selected)) {
+                if (selected.type == WILD_DRAW_FOUR && player.hasColor(game.getCurrentColor())) {
+                    return;
                 }
+                
+                game.handlePlay(hoveredCardIndex);
             }
         }
-
-        if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
-            if (CheckCollisionPointRec(GetMousePosition(), drawButton)) {
-                game.handleDraw();
-                return;
-            }
-            if (hoveredCardIndex != -1 && hoveredCardIndex < handSize) {
-                Card selected = player.peekCard(hoveredCardIndex);
-                if (game.isCardValid(selected)) {
-                    if (selected.type == WILD_DRAW_FOUR && player.hasColor(game.getCurrentColor())) {
-                        return;
-                    }
-                    game.handlePlay(hoveredCardIndex);
-                }
-            }
-        }
-
-        if (IsKeyPressed(KEY_D)) game.handleDraw();
-        if (IsKeyPressed(KEY_ESCAPE)) currentScreen = SCREEN_EXIT;
     }
+
+    
+    if (IsKeyPressed(KEY_ESCAPE)) currentScreen = SCREEN_EXIT;
+}
 
     void drawGameplay() {
         // DrawText("UNO Game", 20, 20, 30, WHITE);
@@ -1094,7 +1068,6 @@ public:
         break;
     }
 }
-                    // Texture2D tex = cardTextures.textures[filename];
                     Rectangle src = {0, 0, (float)tex.width, (float)tex.height};
                     Rectangle dst = {(float)x, (float)baseY, CARD_WIDTH, CARD_HEIGHT};
                     DrawTexturePro(tex, src, dst, {0, 0}, 0.0f, Color{255, 255, 255, 204});
@@ -1127,7 +1100,6 @@ public:
             break;
         }
     }
-                    // Texture2D tex = cardTextures.textures[filename];
                     Rectangle src = {0, 0, (float)tex.width, (float)tex.height};
                     Rectangle dst = {(float)x, (float)liftedY, CARD_WIDTH, CARD_HEIGHT};
                     DrawTexturePro(tex, src, dst, {0, 0}, 0.0f, Color{255, 255, 255, 153});
@@ -1164,11 +1136,11 @@ public:
                     DrawText(colorNames[i], tx, ty, 30, BLACK);
                 }
 
-                DrawText("(or press R / G / B / Y)",
-                         screenWidth / 2 - MeasureText("(or press R / G / B / Y)", 20) / 2,
-                         screenHeight / 2 + 140, 20, LIGHTGRAY);
+                DrawText("Click a color to select",
+         screenWidth / 2 - MeasureText("Click a color to select", 20) / 2,
+         screenHeight / 2 + 140, 20, LIGHTGRAY);
             }
-
+            
             handleInput();
             game.advanceTurnIfNeeded();
         } else {
@@ -1339,23 +1311,7 @@ public:
         }
     }
     
-    DrawText("Press ENTER for Play Again  |  ESC to Exit", 
-             GetScreenWidth() / 2 - 220, 
-             GetScreenHeight() - 40, 
-             18, 
-             Color{200, 200, 200, 255});
-    
-    if (IsKeyPressed(KEY_ENTER)) {
-        game.reset();
-        currentScreen = SCREEN_GAMEPLAY;
-    }
-    if (IsKeyPressed(KEY_ESCAPE)) {
-        currentScreen = SCREEN_EXIT;
-    }
-    if (IsKeyPressed(KEY_M)) {
-        game.reset();
-        currentScreen = SCREEN_MAIN_MENU;
-    }
+
 }
 };
 
