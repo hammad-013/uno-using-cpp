@@ -112,3 +112,60 @@ public:
         return hand.size();
     }
 };
+class Deck
+{
+private:
+    queue<string> drawPile;
+    queue<string> discardPile;
+
+    void moveDiscardToDraw()
+     {
+        if (discardPile.size() <= 1) return;
+
+
+        string topCard = "";
+        queue<string> temp;
+
+        while (!discardPile.empty())
+        {
+            temp.push(discardPile.front());
+            discardPile.pop();
+        }
+        topCard = temp.back();
+        temp.pop();
+
+
+        while (!temp.empty())
+        {
+            drawPile.push(temp.front());
+            temp.pop();
+        }
+
+
+        string cards[108];
+        int count = 0;
+        while (!drawPile.empty())
+        {
+            cards[count] = drawPile.front();
+            drawPile.pop();
+            count++;
+        }
+
+        srand(time(0));
+        for (int i = count - 1; i > 0; i--)
+        {
+            int j = rand() % (i + 1);
+            string swapTemp = cards[i];
+            cards[i] = cards[j];
+            cards[j] = swapTemp;
+        }
+
+        for (int i = 0; i < count; i++)
+        {
+            drawPile.push(cards[i]);
+        }
+
+
+        discardPile.push(topCard);
+    }
+};
