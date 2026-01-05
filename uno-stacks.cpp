@@ -348,4 +348,13 @@ public:
     {
         hand.addCard(card);
     }
+    string playCard(int index)
+    {
+        string card = hand.getCardAt(index);
+        if (card != "")
+        {
+            hand.removeCard(card);
+        }
+        return card;
+    }
     
