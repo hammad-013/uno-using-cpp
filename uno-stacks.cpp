@@ -283,3 +283,29 @@ public:
     {
         return cards.isEmpty();
     }
+     string getCardAt(int index)
+    {
+        if (index < 0 || index >= sizee())
+            return "";
+
+        Stack<string> temp;
+        string result = "";
+
+        int n = sizee();
+        int targetFromTop = n - 1 - index;
+
+        int currentFromTop = 0;
+        for (int i = 0; i<=targetFromTop;i++)
+        {
+            string card = cards.pop();
+            if (i == targetFromTop)
+                result = card;
+            temp.push(card);
+        }
+
+        while (!temp.isEmpty())
+            cards.push(temp.pop());
+
+        return result;
+    }
+
