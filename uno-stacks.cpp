@@ -335,3 +335,17 @@ bool removeCard(string cardToRemove)
         return found;
     }
 };
+class Player
+{
+public:
+    int id;
+    Hand hand;
+
+    Player() : id(0) {}
+    Player(int playerId) : id(playerId) {}
+
+    void drawCard(string card)
+    {
+        hand.addCard(card);
+    }
+    
