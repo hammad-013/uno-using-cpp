@@ -59,3 +59,56 @@ bool canPlayOn(const Card& top, const string& forcedColor) const {
 
         return false;
     }
+class Player {
+public:
+    int id;
+    queue<string> hand;
+
+    Player() : id(0) {}
+    Player(int pid) : id(pid) {}
+
+    void addCard(string cardName) {
+        hand.push(cardName);
+    }
+
+    string playCard(int index) {
+        if (index < 0 || index >= (int)hand.size()) return "";
+
+        queue<string> temp;
+        string chosen = "";
+        int count = 0;
+
+        while (!hand.empty()) {
+            string c = hand.front();
+            hand.pop();
+            if (count == index) {
+                chosen = c;
+            } else {
+                temp.push(c);
+            }
+            count++;
+        }
+        hand = temp;
+        return chosen;
+    }
+
+    string getCardAt(int index) const {
+        queue<string> temp = hand;
+        string result = "";
+        int count = 0;
+
+        while (!temp.empty()) {
+            if (count == index) {
+                result = temp.front();
+                break;
+            }
+            temp.pop();
+            count++;
+        }
+        return result;
+    }
+
+    int getHandSize() const {
+        return hand.size();
+    }
+};
