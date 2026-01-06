@@ -410,4 +410,8 @@ public:
 
         return drawPile.pop();
     }
+      void discard(string card)
+    {
+        discardPile.push(card);
+    }
     
