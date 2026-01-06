@@ -112,3 +112,47 @@ public:
         return hand.size();
     }
 };
+ class Game {
+private:
+    Player players[4];
+    Deck deck;
+    int currentPlayer;
+    bool clockwise;
+    string currentColor;
+    bool over;
+
+public:
+
+    Game() : players{Player(0), Player(1), Player(2), Player(3)} {
+        currentPlayer = 0;
+        clockwise = true;
+        currentColor = "";
+        over = false;
+    }
+
+    void start() {
+        deck.createDeck();
+
+
+        for (int i = 0; i < 4; i++) {
+            for (int j = 0; j < 7; j++) {
+                players[i].addCard(deck.draw());
+            }
+        }
+
+
+        string firstCard = deck.draw();
+        Card c(firstCard);
+        while (c.isWild()) {
+            deck.discard(firstCard);
+            firstCard = deck.draw();
+            c = Card(firstCard);
+        }
+        deck.discard(firstCard);
+        currentColor = c.getColor();
+
+        over = false;
+        currentPlayer = 0;
+        clockwise = true;
+    }
+
