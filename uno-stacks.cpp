@@ -369,4 +369,14 @@ private:
     Stack<string> discardPile;
 
 public:
+ void createDeck()
+    {
+        drawPile.Clear();
+        discardPile.Clear();
+
+        string colors[4] = {"Red","Blue","Green","Yellow"};
+        for (int c = 0; c < 4; c++)
+        {
+            string color = colors[c];
+            drawPile.push(color + "_0");
     
