@@ -414,4 +414,12 @@ public:
     {
         discardPile.push(card);
     }
+    string getTopDiscard() const
+    {
+        if (discardPile.isEmpty())
+        {
+            return "";
+        }
+        return discardPile.peek();
+    }
     
