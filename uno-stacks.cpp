@@ -362,5 +362,11 @@ public:
         return hand.sizee();
     }
 };
+class Deck
+{
+private:
+    Stack<string> drawPile;
+    Stack<string> discardPile;
 
+public:
     
