@@ -168,4 +168,83 @@ private:
 
         discardPile.push(topCard);
     }
+
+public:
+    void createDeck() {
+        queue<string> allCards;
+        string colors[4] = {"RED", "GREEN", "BLUE", "YELLOW"};
+
+        for (int c = 0; c < 4; c++) {
+            string color = colors[c];
+            allCards.push(color + "_0");
+
+            for (int n = 1; n <= 9; n++) {
+                string num = to_string(n);
+                allCards.push(color + "_" + num);
+                allCards.push(color + "_" + num);
+            }
+
+            allCards.push(color + "_SKIP");
+            allCards.push(color + "_SKIP");
+            allCards.push(color + "_REVERSE");
+            allCards.push(color + "_REVERSE");
+            allCards.push(color + "_DRAW_TWO");
+            allCards.push(color + "_DRAW_TWO");
+
+            allCards.push("WILD");
+            allCards.push("WILD_DRAW_FOUR");
+        }
+
+        // Transfer to array and shuffle
+        string cardArray[108];
+        int idx = 0;
+        while (!allCards.empty()) {
+            cardArray[idx] = allCards.front();
+            allCards.pop();
+            idx++;
+        }
+
+        srand(time(0));
+        for (int i = 107; i > 0; i--) {
+            int j = rand() % (i + 1);
+            string temp = cardArray[i];
+            cardArray[i] = cardArray[j];
+            cardArray[j] = temp;
+        }
+
+        drawPile = queue<string>();
+        for (int i = 0; i < 108; i++) {
+            drawPile.push(cardArray[i]);
+        }
+        discardPile = queue<string>();
+    }
+
+    string draw() {
+        if (drawPile.empty()) {
+            moveDiscardToDraw();
+        }
+        if (drawPile.empty()) return "";
+        string card = drawPile.front();
+        drawPile.pop();
+        return card;
+    }
+
+    void discard(string card) {
+        discardPile.push(card);
+    }
+
+    string topDiscard() const {
+        if (discardPile.empty()) return "";
+        queue<string> temp = discardPile;
+        string top = "";
+        while (!temp.empty()) {
+            top = temp.front();
+            temp.pop();
+        }
+        return top;
+    }
+
+    int drawPileSize() const {
+        return drawPile.size();
+    }
 };
