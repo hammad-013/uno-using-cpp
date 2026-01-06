@@ -379,4 +379,21 @@ public:
         {
             string color = colors[c];
             drawPile.push(color + "_0");
+              for (int num = 1; num<=9; num++)
+            {
+                string numStr = to_string(num);
+                drawPile.push(color + "_" + numStr);
+                drawPile.push(color + "_" + numStr);
+            }
+            drawPile.push(color + "_Skip");
+            drawPile.push(color + "_Skip");
+            drawPile.push(color + "_Reverse");
+            drawPile.push(color + "_Reverse");
+            drawPile.push(color + "_Draw_2");
+            drawPile.push(color + "_Draw_2");
+            drawPile.push("Wild");
+            drawPile.push("Wild_Draw_4");
+        }
+        drawPile.shuffle();
+    }
     
