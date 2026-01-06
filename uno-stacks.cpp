@@ -357,4 +357,10 @@ public:
         }
         return card;
     }
+      int getHandSize()
+    {
+        return hand.sizee();
+    }
+};
+
     
