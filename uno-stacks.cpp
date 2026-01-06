@@ -396,4 +396,18 @@ public:
         }
         drawPile.shuffle();
     }
+     string drawCard()
+    {
+        if (drawPile.isEmpty())
+        {
+            reshuffleDiscard();
+        }
+
+        if (drawPile.isEmpty())
+        {
+            return "";
+        }
+
+        return drawPile.pop();
+    }
     
