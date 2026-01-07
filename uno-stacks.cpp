@@ -422,4 +422,11 @@ public:
         }
         return discardPile.peek();
     }
+     void reshuffleDiscard()
+    {
+        if (discardPile.sizee() <= 1)
+        {
+            return;
+        }
+        string topCard = discardPile.pop();
     
