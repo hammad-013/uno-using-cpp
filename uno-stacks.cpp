@@ -441,5 +441,8 @@ public:
     {
         return drawPile.sizee();
     }
-
+    int getDiscardPileSize()
+    {
+        return discardPile.sizee();
+    }
     
