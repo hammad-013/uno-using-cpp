@@ -429,4 +429,12 @@ public:
             return;
         }
         string topCard = discardPile.pop();
+        while (!discardPile.isEmpty())
+        {
+            drawPile.push(discardPile.pop());
+        }
+
+        drawPile.shuffle();
+        discardPile.push(topCard);
+    }
     
