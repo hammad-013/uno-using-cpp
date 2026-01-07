@@ -3,6 +3,7 @@
 #include <ctime>
 #include <vector>
 #include <cstdlib>
+#include <raylib.h>
 using namespace std;
 
 
