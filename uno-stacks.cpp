@@ -445,4 +445,13 @@ public:
     {
         return discardPile.sizee();
     }
-    
+    string flipStartCard()
+    {
+        string card = drawCard();
+        if (card != "")
+        {
+            discard(card);
+        }
+        return card;
+    }
+}; 
