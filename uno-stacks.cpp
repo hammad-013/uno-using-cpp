@@ -437,4 +437,9 @@ public:
         drawPile.shuffle();
         discardPile.push(topCard);
     }
+    int getDrawPileSize()
+    {
+        return drawPile.sizee();
+    }
+
     
