@@ -294,4 +294,88 @@ public:
         clockwise = true;
     }
 
+bool play(int playerIdx, int cardIndex, string& msg)
+ {
+        Player& p = players[playerIdx];
+        string playedName = p.playCard(cardIndex);
+        if (playedName == "")
+            {
+            msg = "Invalid card!";
+            return false;
+        }
 
+        Card played(playedName);
+        Card top(deck.topDiscard());
+
+        if (!played.canPlayOn(top, currentColor))
+        {
+            p.addCard(playedName);
+            msg = "Cannot play this card!";
+            return false;
+        }
+
+        deck.discard(playedName);
+
+        if (p.getHandSize() == 0)
+            {
+            over = true;
+            msg = "Player " + to_string(playerIdx + 1) + " WINS!";
+            return true;
+        }
+
+        if (!played.isWild())
+            {
+            currentColor = played.getColor();
+        }
+
+        string val = played.getValue();
+        if (val == "DRAW_FOUR")
+        {
+            int next = getNext();
+            for (int i = 0; i < 4; i++) players[next].addCard(deck.draw());
+            currentPlayer = getNext();
+        }
+        else if (val == "DRAW_TWO")
+        {
+            int next = getNext();
+            for (int i = 0; i < 2; i++) players[next].addCard(deck.draw());
+            currentPlayer = getNext();
+        }
+        else if (val == "SKIP") {
+            currentPlayer = getNext();
+        }
+        else if (val == "REVERSE") {
+            clockwise = !clockwise;
+        }
+
+        currentPlayer = getNext();
+        msg = "Played: " + playedName;
+        return true;
+    }
+
+    int getNext() const {
+        if (clockwise) {
+            return (currentPlayer + 1) % 4;
+        } else {
+            return (currentPlayer - 1 + 4) % 4;
+        }
+    }
+
+    void drawForCurrent() {
+        players[currentPlayer].addCard(deck.draw());
+    }
+
+    void nextPlayer() {
+        currentPlayer = getNext();
+    }
+
+    void setColor(string col) { currentColor = col; }
+
+
+    int getCurrent() const { return currentPlayer; }
+    string getColor() const { return currentColor; }
+    string getTop() const { return deck.topDiscard(); }
+    Player getPlayer(int i) const { return players[i]; }
+    bool isOver() const { return over; }
+    int drawSize() const { return deck.drawPileSize(); }
+};
