@@ -29,27 +29,18 @@ private:
 
 
 public:
-    Stack() : topNode(nullptr), count(0) {}
-
-
-    Stack(const Stack& other) : topNode(nullptr), count(0)
+    Stack() : capacity(10), top(0)
     {
-        if (other.topNode == nullptr) return;
+        arr = new T[capacity];
+    }
 
-        T* tempArray = new T[other.count];
-        Node* current = other.topNode;
-        int index = 0;
-        while (current != nullptr)
+    Stack(const Stack& other) : capacity(other.capacity), top(other.top)
+    {
+        arr = new T[capacity];
+        for (int i = 0; i < top; i++)
         {
-            tempArray[index++] = current->data;
-            current = current->next;
+            arr[i] = other.arr[i];
         }
-        for (int i = index - 1; i >= 0; i--)
-        {
-            push(tempArray[i]);
-        }
-
-        delete[] tempArray;
     }
     Stack& operator=(const Stack& other)
     {
