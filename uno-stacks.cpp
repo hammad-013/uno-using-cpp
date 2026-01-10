@@ -42,36 +42,21 @@ public:
             arr[i] = other.arr[i];
         }
     }
-    Stack& operator=(const Stack& other)
+      Stack& operator=(const Stack& other)
     {
         if (this != &other)
         {
-
-            clear();
-            if (other.topNode != nullptr)
+            delete[] arr;
+            capacity = other.capacity;
+            top = other.top;
+            arr = new T[capacity];
+            for (int i = 0; i < top; i++)
             {
-                T* tempArray = new T[other.count];
-
-                Node* current = other.topNode;
-                int index = 0;
-                while (current != nullptr)
-                {
-                    tempArray[index++] = current->data;
-                    current = current->next;
-                }
-
-                for (int i = index - 1; i >= 0; i--)
-                {
-                    push(tempArray[i]);
-                }
-
-                delete[] tempArray;
+                arr[i] = other.arr[i];
             }
         }
         return *this;
     }
-
-};
 ~Stack()
     {
         Clear();
