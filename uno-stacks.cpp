@@ -59,29 +59,26 @@ public:
     }
 ~Stack()
     {
-        Clear();
+        delete[] arr;
     }
 
     void push(T value)
     {
-        Node<T>* newNode = new Node(value);
-        newNode->next = topNode;
-        topNode = newNode;
-        top++;
+        if (top >= capacity)
+        {
+            resize();
+        }
+        arr[top++] = value;
     }
+   
 
-    T pop()
+ T pop()
     {
         if (isEmpty())
         {
             return T();
         }
-        Node<T>* temp = topNode;
-        T value = topNode->data;
-        topNode = topNode->next;
-        delete temp;
-        top--;
-        return value;
+        return arr[--top];
     }
 
     T peek() const
@@ -90,13 +87,12 @@ public:
         {
             return T();
         }
-        return topNode->data;
+        return arr[top - 1];
     }
-
 
     bool isEmpty() const
     {
-        return topNode == nullptr;
+        return top == 0;
     }
 
     int sizee() const
@@ -106,12 +102,10 @@ public:
 
     void Clear()
     {
-        while (!isEmpty())
-        {
-            pop();
-        }
+        top = 0;
     }
-    void shuffle()
+
+       void shuffle()
     {
         if (isEmpty() || sizee() == 1)
             return;
