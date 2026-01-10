@@ -11,15 +11,22 @@ template <typename T>
 class Stack
 {
 private:
-    struct Node
-    {
-        T data;
-        Node* next;
-        Node(T val) : data(val), next(nullptr) {}
-    };
+    T* arr;
+    int capacity;
+    int top;
 
-    Node* topNode;
-    int count;
+    void resize()
+    {
+        capacity *= 2;
+        T* newArr = new T[capacity];
+        for (int i = 0; i < top; i++)
+        {
+            newArr[i] = arr[i];
+        }
+        delete[] arr;
+        arr = newArr;
+    }
+
 
 public:
     Stack() : topNode(nullptr), count(0) {}
