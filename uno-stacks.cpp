@@ -104,49 +104,23 @@ public:
     {
         top = 0;
     }
-
-       void shuffle()
+    void shuffle()
     {
         if (isEmpty() || sizee() == 1)
             return;
 
         int n = sizee();
-        Stack<T> temp1;
-        while (!isEmpty())
-        {
-            temp1.push(pop());
-        }
         for (int i = n - 1; i > 0; i--)
         {
             int j = rand() % (i + 1);
-
-            Stack<T> temp2;
-            T selectedItem;
-            for (int k = 0; k <= i; k++)
-            {
-                T item = temp1.pop();
-                if (k == j)
-                {
-                    selectedItem = item;
-                }
-                else
-                {
-                    temp2.push(item);
-                }
-            }
-
-            push(selectedItem);
-            while (!temp2.isEmpty())
-            {
-                temp1.push(temp2.pop());
-            }
-        }
-        if (!temp1.isEmpty())
-        {
-            push(temp1.pop());
+            T temp = arr[i];
+            arr[i] = arr[j];
+            arr[j] = temp;
         }
     }
 };
+
+    
 class Card
 {
 public:
