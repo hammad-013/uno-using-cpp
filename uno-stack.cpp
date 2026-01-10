@@ -1,11 +1,6 @@
 #include <iostream>
 #include <string>
 #include <cstdlib>
-<<<<<<< HEAD
-=======
-#include <vector>
-#include <cassert>
->>>>>>> ac3b289a659be540cc6a3d90ccc2e6235f1d7ad2
 #include <cstring>
 #include <ctime>
 #include <raylib.h>
@@ -1412,7 +1407,6 @@ public:
             cout << "  " << p.id << ": " << p.getHandSize() << " cards" << marker << endl;
         }
         cout << endl;
->>>>>>> ac3b289a659be540cc6a3d90ccc2e6235f1d7ad2
     }
 };
 
@@ -1431,12 +1425,6 @@ class unoGUI
    string cardNames[max_cards];
    int card_count;
    Rectangle playButton;
-
-<<<<<<< HEAD
-    Game game;
-    unoGUI gui(&game, 1400, 900);
-    gui.run();
-=======
    void LoadBasicImages()
    {
        texlogo = LoadTexture("E:/BSCS-Semester3/DSA/UNO/assets/cards/logo.png");
@@ -1679,13 +1667,9 @@ class unoGUI
 
 int main() {
     srand(time(0));
-
     Game game;
-    game.startGame();
-
-    unoGUI gui(&game, 1280, 720);
-    gui.Run();
->>>>>>> ac3b289a659be540cc6a3d90ccc2e6235f1d7ad2
-
+    unoGUI gui(&game, 1400, 900);
+    gui.run();
     return 0;
+
 }
