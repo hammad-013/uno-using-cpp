@@ -1056,6 +1056,24 @@ struct CardTextures {
   Texture2D back;
 
   CardTextures() : cardCount(0) {}
+  void unloadAll() {
+        for (int i = 0; i < cardCount; i++) {
+            if (cards[i].tex.id > 0) {
+                UnloadTexture(cards[i].tex);
+                cards[i].tex = {};
+            }
+        }
+        cardCount = 0;
+        
+        if (back.id > 0) {
+            UnloadTexture(back);
+            back = {};
+        }
+    }
+    
+    ~CardTextures() {
+        unloadAll();
+    }
 };
 
 class UnoGUI {
@@ -1168,7 +1186,10 @@ public:
     loadCardTextures();
   }
 
-  void shutdown() { CloseWindow(); }
+  void shutdown() { 
+        unloadTextures();
+        CloseWindow(); 
+    }
 
   void beginFrame() {
     BeginDrawing();
@@ -2106,6 +2127,12 @@ public:
       }
     }
   }
+  void unloadTextures() {
+        cardTextures.unloadAll();
+    }
+    ~UnoGUI() {
+        unloadTextures();
+    }
 };
 
 int main() {
