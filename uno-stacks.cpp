@@ -456,3 +456,436 @@ public:
         return card;
     }
 }; 
+class Game
+{
+private:
+    Stack<Player> players;
+    Deck deck;
+    int currentPlayerIndex;
+    int totalPlayers;
+    bool clockwise;
+    string currentColor;
+    bool gameOver;
+
+    bool challengeAvailable;
+    int lastWildDraw4Player;
+    string lastDrawnCard;
+    bool drawnCardPlayable;
+    int roundWinner;
+
+    Player getPlayerAt(int index)
+    {
+        Stack<Player> temp;
+        Player result;
+        int coun = 0;
+
+        while (!players.isEmpty())
+        {
+            Player p = players.pop();
+            if (coun == index)
+            {
+                result = p;
+            }
+            temp.push(p);
+            coun++;
+        }
+        while (!temp.isEmpty())
+        {
+            players.push(temp.pop());
+        }
+        return result;
+    }
+    void updatePlayerAt(int index, Player updatedPlayer)
+    {
+        Stack<Player> temp;
+        int countt = 0;
+        while (!players.isEmpty())
+        {
+            Player p = players.pop();
+            if (countt == index)
+            {
+                temp.push(updatedPlayer);
+            }
+            else
+            {
+                temp.push(p);
+            }
+            countt++;
+        }
+        while (!temp.isEmpty())
+        {
+            players.push(temp.pop());
+        }
+    }
+    int getNextPlayerIndex()
+    {
+        if (clockwise)
+        {
+            return (currentPlayerIndex + 1) % totalPlayers;
+        }
+        else
+        {
+            return (currentPlayerIndex - 1 + totalPlayers) % totalPlayers;
+        }
+    }
+    int getCardPoints(string cardName)
+    {
+        Card card(cardName);
+        string value = card.getValue();
+
+        if (value == "1") return 1;
+        if (value == "2") return 2;
+        if (value == "3") return 3;
+        if (value == "4") return 4;
+        if (value == "5") return 5;
+        if (value == "6") return 6;
+        if (value == "7") return 7;
+        if (value == "8") return 8;
+        if (value == "9") return 9;
+        if (value == "0") return 0;
+
+        if (value == "Draw_2" || value == "Reverse" || value == "Skip") return 20;
+
+        if (card.isWild()) return 50;
+
+        return 0;
+    }
+
+    void calculateGameScore(int winnerIndex)
+    {
+        int totalPoints = 0;
+        for (int i = 0; i < totalPlayers; i++)
+        {
+            if (i != winnerIndex)
+            {
+                Player p = getPlayerAt(i);
+                for (int j = 0; j < p.getHandSize(); j++)
+                {
+                    string cardName = p.hand.getCardAt(j);
+                    totalPoints += getCardPoints(cardName);
+                }
+            }
+        }
+        Player winner = getPlayerAt(winnerIndex);
+        winner.addScore(totalPoints);
+        updatePlayerAt(winnerIndex, winner);
+    }
+public:
+    Game() : currentPlayerIndex(0), totalPlayers(4), clockwise(true),
+     currentColor(""), gameOver(false), challengeAvailable(false),
+     lastWildDraw4Player(-1), lastDrawnCard(""), drawnCardPlayable(false),
+     roundWinner(-1)
+    {
+        for (int i = 0; i < 4; i++)
+        {
+            players.push(Player(i));
+        }
+    }
+
+    int getTotalPlayers() const
+    {
+         return totalPlayers;
+    }
+    int getCurrentPlayerIndex() const
+    {
+         return currentPlayerIndex;
+    }
+    bool getClockwise() const
+    {
+         return clockwise;
+    }
+    string getCurrentColor() const
+    {
+         return currentColor;
+    }
+    string getTopDiscard() const
+    {
+         return deck.getTopDiscard();
+    }
+    Player getPlayerAtPublic(int index)
+    {
+         return getPlayerAt(index);
+    }
+    bool isGameOver() const
+    {
+         return gameOver;
+    }
+    int getDrawPileSize()
+    {
+         return deck.getDrawPileSize();
+    }
+    string getLastDrawnCard() const
+    {
+        return lastDrawnCard;
+    }
+    int getPlayerScore(int playerIndex)
+    {
+        if (playerIndex >= 0 && playerIndex < totalPlayers)
+        {
+            Player p = getPlayerAt(playerIndex);
+            return p.getScore();
+        }
+        return 0;
+    }
+    int getRoundWinner() const
+    {
+        return roundWinner;
+    }
+    void checkScoreLimit()
+    {
+        if (getGameWinner() != -1)
+        {
+            gameOver = true;
+        }
+    }
+    int getGameWinner()
+    {
+        for (int i = 0; i < totalPlayers; i++)
+        {
+            Player p = getPlayerAt(i);
+            if (p.getScore() >= 500)
+                return i;
+        }
+        return -1;
+    }
+    void startGame()
+    {
+        deck.createDeck();
+        for (int i = 0; i < totalPlayers; i++)
+        {
+            Player p = getPlayerAt(i);
+            for (int j = 0; j < 7; j++)
+            {
+                p.drawCard(deck.drawCard());
+            }
+            updatePlayerAt(i, p);
+        }
+        string startCard = deck.flipStartCard();
+        Card start(startCard);
+        while (start.isWild())
+        {
+            deck.discard(deck.drawCard());
+            startCard = deck.getTopDiscard();
+            start = Card(startCard);
+        }
+        currentColor = start.getColor();
+        if (start.getValue() == "Skip")
+        {
+            currentPlayerIndex = 1;
+        }
+        else if (start.getValue() == "Reverse")
+        {
+            clockwise = false;
+        }
+        else if (start.getValue() == "Draw_2")
+        {
+            Player p = getPlayerAt(0);
+            p.drawCard(deck.drawCard());
+            p.drawCard(deck.drawCard());
+            updatePlayerAt(0, p);
+            currentPlayerIndex = 1;
+        }
+        gameOver = false;
+    }
+    string drawCard()
+    {
+        return deck.drawCard();
+    }
+    bool playCard(int cardIndex, string& message)
+    {
+        Player currentPlayer = getPlayerAt(currentPlayerIndex);
+        string playedCard = currentPlayer.playCard(cardIndex);
+
+        if (playedCard == "")
+        {
+            message = "Invalid card!";
+            updatePlayerAt(currentPlayerIndex, currentPlayer);
+            return false;
+        }
+        Card played(playedCard);
+        Card topCard(deck.getTopDiscard());
+
+        if (!played.canPlayOn(topCard, currentColor))
+        {
+            message = "Cannot play this card!";
+            currentPlayer.hand.addCard(playedCard);
+            updatePlayerAt(currentPlayerIndex, currentPlayer);
+            return false;
+        }
+
+        deck.discard(playedCard);
+        int cardPoints = getCardPoints(playedCard);
+        currentPlayer.addScore(cardPoints);
+        updatePlayerAt(currentPlayerIndex, currentPlayer);
+
+        // ADD THIS LINE - Check if score limit reached
+        checkScoreLimit();
+
+        message = "Player " + to_string(currentPlayer.id) + " played: " + playedCard;
+
+        if (currentPlayer.getHandSize() == 0)
+        {
+            gameOver = true;
+            roundWinner = currentPlayerIndex;
+            message = "Player " + to_string(currentPlayer.id) + " WINS!";
+            return true;
+        }
+
+        // ADD THIS CHECK - If game is over due to score
+        if (gameOver && currentPlayer.getHandSize() > 0)
+        {
+            roundWinner = currentPlayerIndex;
+            message = "Player " + to_string(currentPlayer.id) + " reached 100 points and WINS!";
+            return true;
+        }
+
+        Player updatedPlayer = getPlayerAt(currentPlayerIndex);
+        if (updatedPlayer.getHandSize() == 1)
+        {
+            message = "Player " + to_string(currentPlayer.id) + " played: " + playedCard + " - UNO!";
+        }
+        if (!played.isWild())
+        {
+            currentColor = played.getColor();
+        }
+
+        handleCardEffect(played, currentPlayer);
+        return true;
+    }
+    void handleCardEffect(Card played, Player& currentPlayer)
+    {
+        string value = played.getValue();
+
+        if (value == "Draw_4")
+        {
+            challengeAvailable = true;
+            lastWildDraw4Player = currentPlayerIndex;
+
+            int nextIndex = getNextPlayerIndex();
+            Player nextPlayer = getPlayerAt(nextIndex);
+
+            for (int i = 0; i < 4; i++)
+            {
+                nextPlayer.drawCard(deck.drawCard());
+            }
+            updatePlayerAt(nextIndex, nextPlayer);
+            currentPlayerIndex = getNextPlayerIndex();
+        }
+        else if (value == "Skip")
+        {
+            currentPlayerIndex = getNextPlayerIndex();
+        }
+        else if (value == "Reverse")
+        {
+            clockwise = !clockwise;
+            if (totalPlayers == 2)
+            {
+                currentPlayerIndex = getNextPlayerIndex();
+            }
+        }
+        else if (value == "Draw_2")
+        {
+            int nextIndex = getNextPlayerIndex();
+            Player nextPlayer = getPlayerAt(nextIndex);
+
+            for (int i = 0; i < 2; i++)
+            {
+    void nextTurn()
+    {
+        currentPlayerIndex = getNextPlayerIndex();
+
+    }
+
+    void setCurrentColor(string color)
+
+    {
+
+        currentColor = color;
+    }
+
+
+    void drawCardForCurrentPlayer()
+    {
+        Player currentPlayer = getPlayerAt(currentPlayerIndex);
+        lastDrawnCard = deck.drawCard();
+
+        currentPlayer.drawCard(lastDrawnCard);
+        updatePlayerAt(currentPlayerIndex, currentPlayer);
+
+        Card drawnCard(lastDrawnCard);
+        Card topCard(deck.getTopDiscard());
+        drawnCardPlayable = drawnCard.canPlayOn(topCard, currentColor);
+    }
+    bool canPlayDrawnCard()
+    {
+        return drawnCardPlayable && !lastDrawnCard.empty();
+    }
+
+    void clearDrawnCard()
+    {
+        lastDrawnCard = "";
+        drawnCardPlayable = false;
+    }
+    bool canChallenge()
+    {
+        return challengeAvailable;
+    }
+
+    void acceptWildDraw4()
+    {
+        challengeAvailable = false;
+    }
+
+    bool processChallenge(string& message)
+    {
+        if (!challengeAvailable)
+        {
+            message = "No challenge available!";
+            return false;
+        }
+
+        challengeAvailable = false;
+
+        Player challengedPlayer = getPlayerAt(lastWildDraw4Player);
+        Card topCard(deck.getTopDiscard());
+
+        bool hadPlayableCard = false;
+        for (int i = 0; i < challengedPlayer.getHandSize(); i++)
+        {
+            string cardName = challengedPlayer.hand.getCardAt(i);
+            Card card(cardName);
+            if (!card.isWild() && card.getColor() == currentColor)
+            {
+                hadPlayableCard = true;
+                break;
+            }
+        }
+
+        if (hadPlayableCard)
+        {
+            message = "Challenge successful! Player " + to_string(lastWildDraw4Player) + " draws 4 cards!";
+
+            Player currentPlayer = getPlayerAt(currentPlayerIndex);
+            for (int i = 0; i < 4; i++)
+            {
+                currentPlayer.hand.removeCard(currentPlayer.hand.getCardAt(0));
+                challengedPlayer.drawCard(deck.drawCard());
+            }
+            updatePlayerAt(currentPlayerIndex, currentPlayer);
+            updatePlayerAt(lastWildDraw4Player, challengedPlayer);
+
+            return true;
+        }
+        else
+        {
+            message = "Challenge failed! You draw 2 more cards!";
+            Player currentPlayer = getPlayerAt(currentPlayerIndex);
+            currentPlayer.drawCard(deck.drawCard());
+            currentPlayer.drawCard(deck.drawCard());
+            updatePlayerAt(currentPlayerIndex, currentPlayer);
+
+            return false;
+        }
+    }
+
+};
