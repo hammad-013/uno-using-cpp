@@ -1732,6 +1732,7 @@ public:
     }
 
     DrawRectangle(0, 0, screenWidth, 80, Color{0, 0, 0, 150});
+   
     DrawText("TOTAL SCORES:", 20, 30, 24, YELLOW);
 
     Node<Player> *temp = game.getPlayers().getHead();
@@ -1740,11 +1741,17 @@ public:
     do {
       Player &p = temp->getData();
       string scoreText = p.getName() + ": " + to_string(p.getTotalScore());
+      string handSizeText = "Cards: " + to_string(p.getHandSize());
+      
       DrawText(scoreText.c_str(), scoreX, 30, 24, WHITE);
-
+      
+      DrawText(handSizeText.c_str(), scoreX, 55, 18, LIGHTGRAY);
+      
       if (&p == &game.getCurrentPlayer()) {
-        DrawRectangle(scoreX - 10, 25, MeasureText(scoreText.c_str(), 24) + 20,
-                      30, Color{255, 255, 255, 50});
+        DrawRectangle(scoreX - 10, 25, 
+                     max(MeasureText(scoreText.c_str(), 24), 
+                         MeasureText(handSizeText.c_str(), 18)) + 20,
+                     50, Color{255, 255, 255, 50});
       }
 
       scoreX += scoreSpacing;
