@@ -6,6 +6,19 @@
 #include <raylib.h>
 using namespace std;
 
+enum GameState {
+    PLAYER_TURN,
+    WILD_COLOR_CHOICE,
+    CHALLENGE_PENDING,
+    ROUND_OVER,
+    GAME_OVER
+};
+
+// Scoring constants
+const int WINNING_SCORE = 500;
+const int WILD_SCORE = 50;
+const int ACTION_SCORE = 20;
+
 template <typename T>
 class queue {
 private:
