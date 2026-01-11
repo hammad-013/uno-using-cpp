@@ -1,8 +1,219 @@
 #include <iostream>
 #include <string>
+#include <vector>
+#include <cstdlib>
+#include <ctime>
+#include <raylib.h>
 using namespace std;
 
+template <typename T>
+class queue {
+private:
+    struct Node {
+        T data;
+        Node* next;
+        Node(T val)
+        {
 
+         data=value;
+         next=nullptr; }
+    };
+
+    Node* frontPtr;
+    Node* rearPtr;
+    int queueSize;
+
+public:
+
+    queue()
+    {
+
+     frontPtr=nullptr;
+     rearPtr=nullptr;
+    queueSize=0;
+    }
+    ~queue() {
+        clear();
+    }
+
+
+    queue(const queue& other) : frontPtr(nullptr), rearPtr(nullptr), queueSize(0) {
+        Node* current = other.frontPtr;
+        while (current != nullptr) {
+            push(current->data);
+            current = current->next;
+        }
+    }
+
+
+    queue& operator=(const queue& other) {
+        if (this != &other) {
+            clear();
+            Node* current = other.frontPtr;
+            while (current != nullptr) {
+                push(current->data);
+                current = current->next;
+            }
+        }
+        return *this;
+    }
+
+
+    void push(T value) {
+        Node* newNode = new Node(value);
+
+        if (empty()) {
+            frontPtr = rearPtr = newNode;
+        } else {
+            rearPtr->next = newNode;
+            rearPtr = newNode;
+        }
+        queueSize++;
+    }
+
+
+    void pop() {
+        if (empty()) return;
+
+        Node* temp = frontPtr;
+        frontPtr = frontPtr->next;
+
+        if (frontPtr == nullptr) {
+            rearPtr = nullptr;
+        }
+
+        delete temp;
+        queueSize--;
+    }
+
+
+    T front() const {
+        if (empty()) {
+            return T();
+        }
+        return frontPtr->data;
+    }
+
+    T back() const {
+        if (empty()) {
+            return T();
+        }
+        return rearPtr->data;
+    }
+
+
+    bool empty() const {
+        return frontPtr == nullptr;
+    }
+
+
+    bool isEmpty() const {
+        return empty();
+    }
+
+
+    int size() const {
+        return queueSize;
+    }
+
+
+    void clear() {
+        while (!empty()) {
+            pop();
+        }
+    }
+
+
+    T getAt(int index) const {
+        if (index < 0 || index >= queueSize) {
+            return T();
+        }
+
+        Node* current = frontPtr;
+        for (int i = 0; i < index; i++) {
+            current = current->next;
+        }
+        return current->data;
+    }
+
+
+    T removeAt(int index) {
+        if (index < 0 || index >= queueSize || empty()) {
+            return T();
+        }
+
+        T removedValue;
+
+        if (index == 0) {
+
+            removedValue = frontPtr->data;
+            pop();
+        } else {
+
+            Node* prev = frontPtr;
+            for (int i = 0; i < index - 1; i++) {
+                prev = prev->next;
+            }
+
+            Node* toRemove = prev->next;
+            removedValue = toRemove->data;
+
+            prev->next = toRemove->next;
+
+
+            if (toRemove == rearPtr) {
+                rearPtr = prev;
+            }
+
+            delete toRemove;
+            queueSize--;
+        }
+
+        return removedValue;
+    }
+
+
+    T* copyToArray() const {
+        if (empty()) return nullptr;
+
+        T* arr = new T[queueSize];
+        Node* current = frontPtr;
+
+        for (int i = 0; i < queueSize; i++) {
+            arr[i] = current->data;
+            current = current->next;
+        }
+
+        return arr;
+    }
+
+
+    void loadFromArray(T* arr, int arrSize) {
+        clear();
+
+        for (int i = 0; i < arrSize; i++) {
+            push(arr[i]);
+        }
+    }
+
+
+    bool hasColor(const string& color) const {
+        Node* current = frontPtr;
+
+        while (current != nullptr) {
+            string cardName = current->data;
+             pos = cardName.find('_');
+            if (pos != string::npos) {
+                string cardColor = cardName.substr(0, pos);
+                if (cardColor == color) {
+                    return true;
+                }
+            }
+            current = current->next;
+        }
+        return false;
+    }
+};
 class Card {
 public:
     string name;
@@ -24,7 +235,7 @@ public:
         return color;
     }
  string getValue() const {
-        if (name == "WILD_NORMAL") return "WILD";
+        if (name == "WILD") return "WILD";
         if (name == "WILD_DRAW_FOUR") return "DRAW_FOUR";
 
         int pos = 0;
@@ -39,7 +250,7 @@ public:
         return value;
     }
 bool isWild() const {
-        if (name == "WILD_NORMAL") return true;
+        if (name == "WILD") return true;
         if (name == "WILD_DRAW_FOUR") return true;
         return false;
     }
