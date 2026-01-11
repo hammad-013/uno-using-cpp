@@ -11,94 +11,74 @@ template <typename T>
 class Stack
 {
 private:
-    struct Node
-    {
-        T data;
-        Node* next;
-        Node(T val) : data(val), next(nullptr) {}
-    };
+    T* arr;
+    int capacity;
+    int top;
 
-    Node* topNode;
-    int count;
+    void resize()
+    {
+        capacity *= 2;
+        T* newArr = new T[capacity];
+        for (int i = 0; i < top; i++)
+        {
+            newArr[i] = arr[i];
+        }
+        delete[] arr;
+        arr = newArr;
+    }
+
 
 public:
-    Stack() : topNode(nullptr), count(0) {}
-
-
-    Stack(const Stack& other) : topNode(nullptr), count(0)
+    Stack() : capacity(10), top(0)
     {
-        if (other.topNode == nullptr) return;
-
-        T* tempArray = new T[other.count];
-        Node* current = other.topNode;
-        int index = 0;
-        while (current != nullptr)
-        {
-            tempArray[index++] = current->data;
-            current = current->next;
-        }
-        for (int i = index - 1; i >= 0; i--)
-        {
-            push(tempArray[i]);
-        }
-
-        delete[] tempArray;
+        arr = new T[capacity];
     }
-    Stack& operator=(const Stack& other)
+
+    Stack(const Stack& other) : capacity(other.capacity), top(other.top)
+    {
+        arr = new T[capacity];
+        for (int i = 0; i < top; i++)
+        {
+            arr[i] = other.arr[i];
+        }
+    }
+      Stack& operator=(const Stack& other)
     {
         if (this != &other)
         {
-
-            clear();
-            if (other.topNode != nullptr)
+            delete[] arr;
+            capacity = other.capacity;
+            top = other.top;
+            arr = new T[capacity];
+            for (int i = 0; i < top; i++)
             {
-                T* tempArray = new T[other.count];
-
-                Node* current = other.topNode;
-                int index = 0;
-                while (current != nullptr)
-                {
-                    tempArray[index++] = current->data;
-                    current = current->next;
-                }
-
-                for (int i = index - 1; i >= 0; i--)
-                {
-                    push(tempArray[i]);
-                }
-
-                delete[] tempArray;
+                arr[i] = other.arr[i];
             }
         }
         return *this;
     }
-
-};
 ~Stack()
     {
-        Clear();
+        delete[] arr;
     }
 
     void push(T value)
     {
-        Node<T>* newNode = new Node(value);
-        newNode->next = topNode;
-        topNode = newNode;
-        top++;
+        if (top >= capacity)
+        {
+            resize();
+        }
+        arr[top++] = value;
     }
+   
 
-    T pop()
+ T pop()
     {
         if (isEmpty())
         {
             return T();
         }
-        Node<T>* temp = topNode;
-        T value = topNode->data;
-        topNode = topNode->next;
-        delete temp;
-        top--;
-        return value;
+        return arr[--top];
     }
 
     T peek() const
@@ -107,13 +87,12 @@ public:
         {
             return T();
         }
-        return topNode->data;
+        return arr[top - 1];
     }
-
 
     bool isEmpty() const
     {
-        return topNode == nullptr;
+        return top == 0;
     }
 
     int sizee() const
@@ -123,10 +102,7 @@ public:
 
     void Clear()
     {
-        while (!isEmpty())
-        {
-            pop();
-        }
+        top = 0;
     }
     void shuffle()
     {
@@ -134,42 +110,17 @@ public:
             return;
 
         int n = sizee();
-        Stack<T> temp1;
-        while (!isEmpty())
-        {
-            temp1.push(pop());
-        }
         for (int i = n - 1; i > 0; i--)
         {
             int j = rand() % (i + 1);
-
-            Stack<T> temp2;
-            T selectedItem;
-            for (int k = 0; k <= i; k++)
-            {
-                T item = temp1.pop();
-                if (k == j)
-                {
-                    selectedItem = item;
-                }
-                else
-                {
-                    temp2.push(item);
-                }
-            }
-
-            push(selectedItem);
-            while (!temp2.isEmpty())
-            {
-                temp1.push(temp2.pop());
-            }
-        }
-        if (!temp1.isEmpty())
-        {
-            push(temp1.pop());
+            T temp = arr[i];
+            arr[i] = arr[j];
+            arr[j] = temp;
         }
     }
 };
+
+    
 class Card
 {
 public:
