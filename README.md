@@ -1,77 +1,57 @@
-# UNO Card Game in C++ Using Data Structures (with raylib GUI)
+UNO Game Implementation - Data Structures Project
 
-## Overview
-An implementation of the classic UNO card game in C++, featuring multiple versions that demonstrate key data structures. The project is actively evolving with the addition of a graphical user interface (GUI) using raylib.
+A C++ implementation of the UNO card game using three different data structures: Stack, Queue, and Linked List. Developed as a university project for Data Structures course at Namal University Mianwali.
+Features
 
-## Implementations
+    Three complete implementations using different data structures
 
-- **uno-linkedlist.cpp**
-- **uno-queue.cpp**
-- **uno-stack.cpp**
+    Interactive GUI built with Raylib library
 
+    Supports 4 players with standard UNO rules
 
-## Features
+    Full rule enforcement (UNO call, challenges, scoring, etc.)
 
-- Full standard UNO rules: color/number matching, action cards (Skip, Reverse, Draw Two, Wild, Wild Draw Four)
-- Multi-player turn-based gameplay
-- Random shuffling and dealing
-- Console interface for core logic
-- GUI: Graphical elements added using raylib (e.g., start screen; more in development)
+    Performance analysis and comparison of each data structure
 
-## Prerequisites
+Data Structures Used
 
-### C++ Compiler
-- C++ compiler (g++, clang++, MSVC)
+    Stack: LIFO-based implementation for deck and discard piles
 
-### For GUI
-- raylib installed and linked
+    Queue: FIFO-based implementation for sequential card control
 
-### Installing raylib
-Follow the official guide: [https://github.com/raysan5/raylib#build-and-installation](https://github.com/raysan5/raylib#build-and-installation)
+    Linked List: Doubly linked list for flexible card operations
 
-*(Quick examples: `apt install libraylib-dev` on Ubuntu, or build from source.)*
+Project Structure
 
-## Build and Run
+The project contains three separate implementations, each demonstrating how different data structures affect game performance and implementation complexity.
+Time Complexity Analysis
+Operation	Stack	Linked List	Queue
+Access card by index	O(n)	O(n)	O(n)
+Play card	O(n)	O(n)	O(n)
+Display hand (GUI)	O(n²)	O(n)	O(n²)
+Get hand size	O(1)	O(n)	O(1)
+Requirements
 
-### Clone the repository:
-```bash
-git clone https://github.com/hammad-013/uno-using-cpp.git
-cd uno-using-cpp
-```
+    C++ Compiler (C++11 or later)
 
-### Compile a version:
-```bash
-g++ -std=c++11 uno-stack.cpp -o uno
-```
-(Adjust flags for your platform, e.g., add -lGL -lm -lpthread -ldl -lrt -lX11 on Linux)
+    Raylib library
 
-### Run a version:
-```bash
-./uno-linkedlist
-```
+Getting Started
 
-## Gameplay
-- Each player receives 7 cards.
-- Match the top discard card by color or number.
-- Use action cards strategically.
-- First to empty hand wins!
+    Clone the repository
 
-## Project Structure
-```
-uno-using-cpp/
-├── .gitignore
-├── README.md                  # Documentation
-├── uno-linkedlist.cpp         # Linked list implementation
-├── uno-queue.cpp              # Queue implementation
-├── uno-stack.cpp              # Stack implementation
-```
+    Ensure Raylib is installed
 
-## Contributors
-- [Hammad Shabbir](https://github.com/hammad-013)
-- [Arfa Tayyabah](https://github.com/arfa-tayyabah)
-- [Abdul Rehman](https://github.com/Ghostaura-svg)
-- [Momina Umar](https://github.com/MominaUmar74)
-- [Junaid Gondal](https://github.com/junaid-gondal)
-- [Sadia Khan](https://github.com/SadiaKhan899)
+    Compile and run any of the three versions
 
-Thanks to everyone helping build this project! 💌
+Contributors
+
+    Linked List Version: Hammad & Abdul Rehman
+
+    Queue Version: Momina Umer & Junaid
+
+    Stack Version: Arfa & Sadia
+
+Course: Data Structures
+Instructor: Mr. Abdul Rafay
+Institution: Namal University Mianwali
