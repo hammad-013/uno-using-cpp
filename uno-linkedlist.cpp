@@ -5,6 +5,7 @@
 #include <random>
 #include <string>
 #include <vector>
+#include <fstream>
 
 using namespace std;
 
@@ -577,6 +578,10 @@ class Game {
   bool showRoundSummary;
   float roundSummaryTimer;
 
+  bool saveMessageVisible;
+  float saveMessageTimer;
+  string saveMessageText;
+
 public:
   Game()
       : gameState(PLAYER_TURN), totalPlayers(4), direction(1),
@@ -584,7 +589,8 @@ public:
         hasCalledUno(false), forgotToCallUno(false),
         playerWhoForgotUno(nullptr), penaltyApplied(false), penaltyMessage(""),
         penaltyMessageTimer(0.0f), roundWinner(nullptr),
-        showRoundSummary(false), roundSummaryTimer(3.0f) {
+        showRoundSummary(false), roundSummaryTimer(3.0f),
+        saveMessageVisible(false), saveMessageTimer(0.0f), saveMessageText("") {
     for (int i = 0; i < totalPlayers; i++) {
       players.insertEnd(Player("Player " + to_string(i + 1), i));
     }
@@ -606,6 +612,10 @@ public:
   bool getShowRoundSummary() const { return showRoundSummary; }
   string getRoundSummary() const { return roundSummary; }
   float getRoundSummaryTimer() const { return roundSummaryTimer; }
+  
+  bool isSaveMessageVisible() const { return saveMessageVisible; }
+  string getSaveMessageText() const { return saveMessageText; }
+  float getSaveMessageTimer() const { return saveMessageTimer; }
 
   void start() {
     deck.shuffle();
@@ -647,6 +657,14 @@ public:
       penaltyMessageTimer -= deltaTime;
       if (penaltyMessageTimer <= 0.0f) {
         penaltyMessage = "";
+      }
+    }
+
+    if (saveMessageTimer > 0.0f) {
+      saveMessageTimer -= deltaTime;
+      if (saveMessageTimer <= 0.0f) {
+        saveMessageVisible = false;
+        saveMessageText = "";
       }
     }
 
@@ -1044,6 +1062,129 @@ public:
 
     start();
   }
+
+  
+  bool hasSaveFile() {
+    ifstream file("uno_save.txt");
+    bool exists = file.good();
+    file.close();
+    return exists;
+  }
+
+  bool saveGame() {
+    ofstream file("uno_save.txt");
+    if (!file) {
+      showSaveMessage("Save failed!", RED);
+      return false;
+    }
+    
+    int currentIdx = 0;
+    Node<Player>* temp = players.getHead();
+    for (int i = 0; i < totalPlayers; i++) {
+      if (temp == currentPlayer) {
+        currentIdx = i;
+        break;
+      }
+      temp = temp->getNext();
+    }
+    file << currentIdx << endl;
+    
+    file << (int)gameState << endl;
+    file << (int)currentColor << endl;
+    file << direction << endl;
+    
+    temp = players.getHead();
+    for (int i = 0; i < totalPlayers; i++) {
+      Player& p = temp->getData();
+      file << p.getName() << endl;
+      file << p.getTotalScore() << endl;
+      file << p.getHandSize() << endl;
+      
+      if (p.getHandSize() > 0) {
+        Node<Card>* cardNode = p.getHand().getHead();
+        for (int j = 0; j < p.getHandSize(); j++) {
+          Card c = cardNode->getData();
+          file << (int)c.color << " " << (int)c.type << " " << c.number << endl;
+          cardNode = cardNode->getNext();
+        }
+      }
+      temp = temp->getNext();
+    }
+    
+    Card top = discardPile.getTopCard();
+    file << (int)top.color << " " << (int)top.type << " " << top.number << endl;
+    
+    file.close();
+    showSaveMessage("Game saved!", GREEN);
+    return true;
+  }
+
+  bool loadGame() {
+    ifstream file("uno_save.txt");
+    if (!file) {
+      showSaveMessage("No save file found!", RED);
+      return false;
+    }
+    
+    players.clear();
+    discardPile = DiscardPile();
+    deck = Deck();
+    
+    int currentIdx;
+    file >> currentIdx;
+    
+    int state, color, dir;
+    file >> state >> color >> dir;
+    gameState = (GameState)state;
+    currentColor = (CardColor)color;
+    direction = dir;
+    
+    for (int i = 0; i < totalPlayers; i++) {
+      string name;
+      int totalScore, handSize;
+      file >> ws;
+      getline(file, name);
+      file >> totalScore >> handSize;
+      
+      Player player(name, i);
+      player.addToTotalScore(totalScore);
+      
+      for (int j = 0; j < handSize; j++) {
+        int cColor, cType, cNumber;
+        file >> cColor >> cType >> cNumber;
+        player.addToHand(Card((CardColor)cColor, (CardType)cType, cNumber));
+      }
+      players.insertEnd(player);
+    }
+    
+    Node<Player>* temp = players.getHead();
+    for (int i = 0; i < currentIdx; i++) {
+      temp = temp->getNext();
+    }
+    currentPlayer = temp;
+    
+    int dColor, dType, dNumber;
+    file >> dColor >> dType >> dNumber;
+    discardPile.addCard(Card((CardColor)dColor, (CardType)dType, dNumber));
+    
+    file.close();
+    
+    hasCalledUno = false;
+    forgotToCallUno = false;
+    playerWhoForgotUno = nullptr;
+    penaltyApplied = false;
+    penaltyMessage = "";
+    roundWinner = nullptr;
+    
+    showSaveMessage("Game loaded!", GREEN);
+    return true;
+  }
+
+  void showSaveMessage(const string& msg, Color color = GREEN) {
+    saveMessageText = msg;
+    saveMessageVisible = true;
+    saveMessageTimer = 2.0f;
+  }
 };
 
 struct CardTextures {
@@ -1091,6 +1232,9 @@ class UnoGUI {
   Rectangle passButton;
 
   Rectangle unoButton;
+  
+  Rectangle saveButton;
+  Rectangle loadButton;
 
 public:
   int screenWidth = 1440;
@@ -1122,6 +1266,9 @@ public:
                     (float)(screenHeight / 2 + 80), 160, 60};
 
     unoButton = {20, 100, 120, 60};
+    
+    saveButton = {(float)(screenWidth - 200), 130, 100, 40};
+    loadButton = {(float)(screenWidth - 200), 180, 100, 40};
   }
 
   void loadCardTextures() {
@@ -1317,6 +1464,25 @@ public:
             currentScreen = SCREEN_HOW_TO_PLAY;
           } else if (i == 2) {
             currentScreen = SCREEN_EXIT;
+          }
+        }
+      }
+      
+      if (game.hasSaveFile()) {
+        int loadY = buttonY + buttonSpacing * 3;
+        Rectangle loadRect = {(float)(centerX - buttonWidth / 2), (float)loadY,
+                              (float)buttonWidth, (float)buttonHeight};
+        
+        bool loadHovered = CheckCollisionPointRec(mousePos, loadRect);
+        Color loadColor = loadHovered ? Color{100, 100, 255, 255} : BLUE;
+        
+        DrawRectangleRounded(loadRect, 0.15f, 10, loadColor);
+        DrawText("LOAD SAVED GAME", centerX - MeasureText("LOAD SAVED GAME", 28)/2, 
+                 loadY + 16, 28, WHITE);
+        
+        if (loadHovered && IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
+          if (game.loadGame()) {
+            currentScreen = SCREEN_GAMEPLAY;
           }
         }
       }
@@ -1595,6 +1761,14 @@ public:
         return;
       }
 
+      if (CheckCollisionPointRec(GetMousePosition(), saveButton)) {
+        game.saveGame();
+      }
+      
+      if (CheckCollisionPointRec(GetMousePosition(), loadButton)) {
+        game.loadGame();
+      }
+
       if (hoveredCardIndex != -1 && hoveredCardIndex < player.getHandSize()) {
         Card selected = player.peekCard(hoveredCardIndex);
         if (game.isCardValid(selected)) {
@@ -1703,6 +1877,28 @@ public:
     }
 
     Vector2 mousePos = GetMousePosition();
+
+    bool saveHovered = CheckCollisionPointRec(mousePos, saveButton);
+    bool loadHovered = CheckCollisionPointRec(mousePos, loadButton);
+    
+    DrawRectangleRounded(saveButton, 0.3f, 8, saveHovered ? GREEN : DARKGREEN);
+    DrawRectangleRoundedLines(saveButton, 0.3f, 8, BLACK);
+    DrawText("SAVE", saveButton.x + 30, saveButton.y + 12, 20, WHITE);
+    
+    DrawRectangleRounded(loadButton, 0.3f, 8, loadHovered ? BLUE : DARKBLUE);
+    DrawRectangleRoundedLines(loadButton, 0.3f, 8, BLACK);
+    DrawText("LOAD", loadButton.x + 30, loadButton.y + 12, 20, WHITE);
+    
+    if (game.isSaveMessageVisible()) {
+      string msg = game.getSaveMessageText();
+      int msgWidth = MeasureText(msg.c_str(), 24);
+      int msgX = screenWidth / 2 - msgWidth / 2;
+      int msgY = 100;
+      
+      DrawRectangle(msgX - 20, msgY - 10, msgWidth + 40, 50, Color{0, 0, 0, 200});
+      DrawRectangleLines(msgX - 20, msgY - 10, msgWidth + 40, 50, DARKGRAY);
+      DrawText(msg.c_str(), msgX, msgY, 24, WHITE);
+    }
 
     bool unoHovered = CheckCollisionPointRec(mousePos, unoButton);
     bool canCallUno = game.canCallUno();
