@@ -16,7 +16,9 @@ private:
 
     void resize()
     {
-        capacity *= 2;
+
+            capacity *= 2;
+
         T* newArr = new T[capacity];
         for (int i = 0; i < top; i++)
         {
@@ -94,7 +96,7 @@ public:
         return top == 0;
     }
 
-    int sizee() const
+    int size() const
     {
         return top;
     }
@@ -106,45 +108,140 @@ public:
 
     void shuffle()
     {
-        if (isEmpty() || sizee() == 1)
+        if (isEmpty() || size() == 1)
+        {
             return;
+        }
 
-        int n = sizee();
+        Stack<T> all;
+        Stack<T> result;
+        int n = size();
+
+        while (!isEmpty())
+        {
+            all.push(pop());
+        }
+
         for (int i = n - 1; i > 0; i--)
         {
-            int j = rand() % (i + 1);
-            T temp = arr[i];
-            arr[i] = arr[j];
-            arr[j] = temp;
+            int randomPos = rand() % (i + 1);
+
+            Stack<T> temp;
+            for (int j = 0; j < randomPos; j++)
+            {
+                temp.push(all.pop());
+            }
+
+            T picked = all.pop();
+            result.push(picked);
+
+            while (!temp.isEmpty())
+            {
+                all.push(temp.pop());
+            }
+        }
+
+        if (!all.isEmpty())
+        {
+            result.push(all.pop());
+        }
+
+        while (!result.isEmpty())
+        {
+            push(result.pop());
         }
     }
 
-   /* T getAtIndex(int index) const
+    T getAtIndex(int index)
     {
         if (index < 0 || index >= top)
+        {
             return T();
-        return arr[index];
-    }*/
+        }
 
+        Stack<T> temp;
+        T result = T();
+        int count = 0;
+
+        while (!isEmpty())
+        {
+            T element = pop();
+            temp.push(element);
+            if (count == index)
+            {
+                result = element;
+            }
+            count++;
+        }
+
+        while (!temp.isEmpty())
+        {
+            push(temp.pop());
+        }
+
+        return result;
+    }
     void setAtIndex(int index, T value)
     {
-        if (index >= 0 && index < top)
+        if (index < 0 || index >= top)
         {
-            arr[index] = value;
+            return;
+        }
+
+        Stack<T> temp;
+        int count = 0;
+
+        while (!isEmpty())
+        {
+            T element = pop();
+            if (count == index)
+            {
+                temp.push(value);
+            }
+            else
+            {
+                temp.push(element);
+            }
+            count++;
+        }
+
+        while (!temp.isEmpty())
+        {
+            push(temp.pop());
         }
     }
 
     bool removeAtIndex(int index)
     {
         if (index < 0 || index >= top)
-            return false;
-
-        for (int i = index; i < top - 1; i++)
         {
-            arr[i] = arr[i + 1];
+            return false;
         }
-        top--;
-        return true;
+
+        Stack<T> temp;
+        int count = 0;
+        bool removed = false;
+
+        while (!isEmpty())
+        {
+            T element = pop();
+            if (count == index)
+            {
+                removed = true;
+            }
+            else
+            {
+                temp.push(element);
+            }
+            count++;
+        }
+
+        while (!temp.isEmpty())
+        {
+            push(temp.pop());
+        }
+
+        return removed;
     }
 };
 
@@ -256,9 +353,9 @@ public:
         cards.push(card);
     }
 
-    int sizee()
+    int size()
     {
-        return cards.sizee();
+        return cards.size();
     }
 
     bool isEmpty()
@@ -268,27 +365,12 @@ public:
 
     string getCardAt(int index)
     {
-        if (index < 0 || index >= cards.sizee())
-            return "";
-        Card temp[cards.sizee()];
-        int c = 0;
-        while (!cards.isEmpty())
-        {
-            temp[c++] = cards.pop();
-        }
-        Card result = temp[index];
-
-        for (int i = c - 1; i >= 0; i--)
-        {
-            cards.push(temp[i]);
-        }
-
-        return result;
+        return cards.getAtIndex(index);
     }
 
     bool removeCard(string cardToRemove)
     {
-        for (int i = 0; i < cards.sizee(); i++)
+        for (int i = 0; i < cards.size(); i++)
         {
             if (cards.getAtIndex(i) == cardToRemove)
             {
@@ -331,7 +413,7 @@ public:
 
     int getHandSize()
     {
-        return hand.sizee();
+        return hand.size();
     }
 
     void addScore(int points)
@@ -374,6 +456,10 @@ public:
             drawPile.push(color + "_Reverse");
             drawPile.push(color + "_Draw_2");
             drawPile.push(color + "_Draw_2");
+        }
+
+        for (int i = 0; i < 4; i++)
+        {
             drawPile.push("Wild");
             drawPile.push("Wild_Draw_4");
         }
@@ -411,7 +497,7 @@ public:
 
     void reshuffleDiscard()
     {
-        if (discardPile.sizee() <= 1)
+        if (discardPile.size() <= 1)
         {
             return;
         }
@@ -428,12 +514,12 @@ public:
 
     int getDrawPileSize()
     {
-        return drawPile.sizee();
+        return drawPile.size();
     }
 
     int getDiscardPileSize()
     {
-        return discardPile.sizee();
+        return discardPile.size();
     }
 
     string flipStartCard()
@@ -467,7 +553,9 @@ private:
     Player getPlayerAt(int index)
     {
         if (index < 0 || index >= totalPlayers)
+        {
             return Player();
+        }
         return players.getAtIndex(index);
     }
 
@@ -493,7 +581,24 @@ private:
 
     int getCardPoints(string cardName)
     {
-        return 1;
+        Card card(cardName);
+        string value = card.getValue();
+
+        if (value == "Wild" || value == "Draw_4")
+        {
+            return 50;
+        }
+        if (value == "Skip" || value == "Reverse" || value == "Draw_2")
+        {
+            return 20;
+        }
+
+        if (value.length() == 1 && value[0] >= '0' && value[0] <= '9')
+        {
+            return value[0] - '0';
+        }
+
+        return 0;
     }
 
     void calculateGameScore(int winnerIndex)
@@ -507,7 +612,13 @@ private:
             }
             else
             {
-                p.score = -(p.getHandSize());
+                int totalPoints = 0;
+                for (int j = 0; j < p.getHandSize(); j++)
+                {
+                    string cardName = p.hand.getCardAt(j);
+                    totalPoints = totalPoints + getCardPoints(cardName);
+                }
+                p.score = totalPoints;
             }
             updatePlayerAt(i, p);
         }
@@ -925,7 +1036,15 @@ public:
 
     void draw()
     {
-        Color col = isHovered() ? hoverColor : normalColor;
+        Color col;
+        if (isHovered())
+        {
+            col = hoverColor;
+        }
+        else
+        {
+            col = normalColor;
+        }
         DrawRectangle((int)x, (int)y, (int)width, (int)height, col);
         DrawRectangleLines((int)x, (int)y, (int)width, (int)height, BLACK);
 
@@ -1065,7 +1184,7 @@ private:
         return GRAY;
     }
 
-    void drawCard(string cardName, float x, float y, float width, float height, bool highlight = false)
+    void drawCard(string cardName, float x, float y, float width, float height, bool highlight)
     {
         Texture2D cardTexture = getTexture(cardName);
         Rectangle source = {0, 0, (float)cardTexture.width, (float)cardTexture.height};
@@ -1096,7 +1215,7 @@ private:
     }
 
 public:
-    unoGUI(Game* g, int width = 1400, int height = 900)
+    unoGUI(Game* g, int width, int height)
     {
         game = g;
         screenWidth = width;
@@ -1287,7 +1406,15 @@ public:
         }
 
         hoveredCardIndex = -1;
-        int drawnCardIndex = hasDrawnCard ? currentPlayer.getHandSize() - 1 : -1;
+        int drawnCardIndex;
+        if (hasDrawnCard)
+        {
+            drawnCardIndex = currentPlayer.getHandSize() - 1;
+        }
+        else
+        {
+            drawnCardIndex = -1;
+        }
         Stack<CardRect> tempRects = currentPlayerCardRects;
         int index = 0;
 
@@ -1449,7 +1576,15 @@ public:
         Color currentCol = getColorFromString(game->getCurrentColor());
         DrawRectangle(screenWidth - 200, 15, 40, 30, currentCol);
         DrawRectangleLines(screenWidth - 200, 15, 40, 30, BLACK);
-        string dir = game->getClockwise() ? "Clockwise" : "Counter-CW";
+        string dir;
+        if (game->getClockwise())
+        {
+            dir = "Clockwise";
+        }
+        else
+        {
+            dir = "Counter-CW";
+        }
         DrawText(dir.c_str(), screenWidth - 140, 20, 20, WHITE);
 
         Player currentPlayer = game->getPlayerAtPublic(game->getCurrentPlayerIndex());
@@ -1516,6 +1651,7 @@ public:
             Button skipBtn(screenWidth - 150, screenHeight - 100, 120, 40, "SKIP");
             skipBtn.draw();
 
+            Player currentPlayer = game->getPlayerAtPublic(game->getCurrentPlayerIndex());
             int drawnCardIndex = currentPlayer.getHandSize() - 1;
             if (selectedCardIndex == drawnCardIndex)
             {
@@ -1599,7 +1735,15 @@ public:
             string count = to_string(p.getHandSize()) + " cards";
             DrawText(count.c_str(), x, y, 20, YELLOW);
 
-            int cardsToDraw = (p.getHandSize() > 5) ? 5 : p.getHandSize();
+            int cardsToDraw;
+            if (p.getHandSize() > 5)
+            {
+                cardsToDraw = 5;
+            }
+            else
+            {
+                cardsToDraw = p.getHandSize();
+            }
             for (int j = 0; j < cardsToDraw; j++)
             {
                 drawCardBack(x + j * 20, y + 25, 88, 140);
@@ -1616,7 +1760,15 @@ public:
             return;
 
         bool hasDrawnCard = !game->getLastDrawnCard().empty();
-        int drawnCardIndex = hasDrawnCard ? currentPlayer.getHandSize() - 1 : -1;
+        int drawnCardIndex;
+        if (hasDrawnCard)
+        {
+            drawnCardIndex = currentPlayer.getHandSize() - 1;
+        }
+        else
+        {
+            drawnCardIndex = -1;
+        }
 
         int cardWidth, cardHeight, spacing;
         int handSize = currentPlayer.getHandSize();
@@ -1865,8 +2017,16 @@ public:
         for (int i = 0; i < game->getTotalPlayers(); i++)
         {
             Player p = game->getPlayerAtPublic(i);
-            string score = "Player " + to_string(i) + ": " + to_string(p.getScore()) + " cards";
-            Color color = (i == winner) ? GREEN : RED;
+            string score = "Player " + to_string(i) + ": " + to_string(p.getScore()) + " points";
+            Color color;
+            if (i == winner)
+            {
+                color = GREEN;
+            }
+            else
+            {
+                color = RED;
+            }
             DrawText(score.c_str(), screenWidth/2 - 100, screenHeight/2 + i * 30, 20, color);
         }
     }
