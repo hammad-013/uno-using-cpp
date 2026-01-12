@@ -18,12 +18,14 @@ A C++ implementation of the UNO card game using three different data structures:
 The project contains three separate implementations, each demonstrating how different data structures affect game performance and implementation complexity.
 
 ## Time Complexity Analysis
-| Operation | Stack | Linked List | Queue |
-|-----------|-------|-------------|-------|
+| **Operation** | **Stack** | **Linked List** | **Queue** |
+|---------------|-----------|-----------------|-----------|
 | Access card by index | O(n) | O(n) | O(n) |
-| Play card | O(n) | O(n) | O(n) |
-| Display hand (GUI) | O(n²) | **O(n)** | O(n²) |
-| Get hand size | **O(1)** | O(n) | **O(1)** |
+| Play card | O(n²) | O(n) | O(n) |
+| Display hand (GUI) | O(n²) | O(n) | O(n²) |
+| Get hand size | O(1) | O(n) | O(1) |
+| Search for card | O(n²) | O(n) | O(n) |
+| Shuffle deck | O(n²) | O(n) | O(n log n) |
 
 ## Requirements
 - C++ Compiler (C++11 or later)
