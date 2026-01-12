@@ -353,6 +353,17 @@ public:
       cards.insertEnd(Card(WILD, WILD_DRAW_FOUR));
     }
   }
+  LinkedList<Card> &getCards() {return cards;}
+  int getCardCount() const {
+    if (cards.isEmpty()) return 0;
+    int count = 0;
+    Node<Card>* temp = cards.getHead();
+    do {
+        count++;
+        temp = temp->getNext();
+    } while (temp != cards.getHead());
+    return count;
+}
 
   Card drawCard() {
     Node<Card> *headNode = cards.getHead();
@@ -1071,21 +1082,21 @@ public:
     return exists;
   }
 
-  bool saveGame() {
+bool saveGame() {
     ofstream file("uno_save.txt");
     if (!file) {
-      showSaveMessage("Save failed!", RED);
-      return false;
+        showSaveMessage("Save failed!", RED);
+        return false;
     }
     
     int currentIdx = 0;
     Node<Player>* temp = players.getHead();
     for (int i = 0; i < totalPlayers; i++) {
-      if (temp == currentPlayer) {
-        currentIdx = i;
-        break;
-      }
-      temp = temp->getNext();
+        if (temp == currentPlayer) {
+            currentIdx = i;
+            break;
+        }
+        temp = temp->getNext();
     }
     file << currentIdx << endl;
     
@@ -1095,35 +1106,57 @@ public:
     
     temp = players.getHead();
     for (int i = 0; i < totalPlayers; i++) {
-      Player& p = temp->getData();
-      file << p.getName() << endl;
-      file << p.getTotalScore() << endl;
-      file << p.getHandSize() << endl;
-      
-      if (p.getHandSize() > 0) {
-        Node<Card>* cardNode = p.getHand().getHead();
-        for (int j = 0; j < p.getHandSize(); j++) {
-          Card c = cardNode->getData();
-          file << (int)c.color << " " << (int)c.type << " " << c.number << endl;
-          cardNode = cardNode->getNext();
+        Player& p = temp->getData();
+        file << p.getName() << endl;
+        file << p.getTotalScore() << endl;
+        file << p.getHandSize() << endl;
+        
+        if (p.getHandSize() > 0) {
+            Node<Card>* cardNode = p.getHand().getHead();
+            for (int j = 0; j < p.getHandSize(); j++) {
+                Card c = cardNode->getData();
+                file << (int)c.color << " " << (int)c.type << " " << c.number << endl;
+                cardNode = cardNode->getNext();
+            }
         }
-      }
-      temp = temp->getNext();
+        temp = temp->getNext();
     }
     
     Card top = discardPile.getTopCard();
     file << (int)top.color << " " << (int)top.type << " " << top.number << endl;
     
+    int deckCardCount = 0;
+    if (!deck.isEmpty()) {
+        Deck tempDeck;
+        Node<Card>* deckNode = deck.getCards().getHead();
+        if (deckNode) {
+            do {
+                deckCardCount++;
+                deckNode = deckNode->getNext();
+            } while (deckNode != deck.getCards().getHead());
+        }
+    }
+    file << deckCardCount << endl;
+    
+    if (deckCardCount > 0) {
+        Node<Card>* deckNode = deck.getCards().getHead();
+        for (int i = 0; i < deckCardCount; i++) {
+            Card c = deckNode->getData();
+            file << (int)c.color << " " << (int)c.type << " " << c.number << endl;
+            deckNode = deckNode->getNext();
+        }
+    }
+    
     file.close();
     showSaveMessage("Game saved!", GREEN);
     return true;
-  }
+}
 
-  bool loadGame() {
+bool loadGame() {
     ifstream file("uno_save.txt");
     if (!file) {
-      showSaveMessage("No save file found!", RED);
-      return false;
+        showSaveMessage("No save file found!", RED);
+        return false;
     }
     
     players.clear();
@@ -1140,32 +1173,47 @@ public:
     direction = dir;
     
     for (int i = 0; i < totalPlayers; i++) {
-      string name;
-      int totalScore, handSize;
-      file >> ws;
-      getline(file, name);
-      file >> totalScore >> handSize;
-      
-      Player player(name, i);
-      player.addToTotalScore(totalScore);
-      
-      for (int j = 0; j < handSize; j++) {
-        int cColor, cType, cNumber;
-        file >> cColor >> cType >> cNumber;
-        player.addToHand(Card((CardColor)cColor, (CardType)cType, cNumber));
-      }
-      players.insertEnd(player);
+        string name;
+        int totalScore, handSize;
+        file >> ws;
+        getline(file, name);
+        file >> totalScore >> handSize;
+        
+        Player player(name, i);
+        player.addToTotalScore(totalScore);
+        
+        for (int j = 0; j < handSize; j++) {
+            int cColor, cType, cNumber;
+            file >> cColor >> cType >> cNumber;
+            player.addToHand(Card((CardColor)cColor, (CardType)cType, cNumber));
+        }
+        players.insertEnd(player);
     }
     
     Node<Player>* temp = players.getHead();
     for (int i = 0; i < currentIdx; i++) {
-      temp = temp->getNext();
+        temp = temp->getNext();
     }
     currentPlayer = temp;
     
     int dColor, dType, dNumber;
     file >> dColor >> dType >> dNumber;
     discardPile.addCard(Card((CardColor)dColor, (CardType)dType, dNumber));
+    
+    int deckCardCount;
+    file >> deckCardCount;
+    
+    while (!deck.isEmpty()) {
+        deck.drawCard();
+    }
+    
+    for (int i = 0; i < deckCardCount; i++) {
+        int cColor, cType, cNumber;
+        if (!(file >> cColor >> cType >> cNumber)) {
+            break; 
+        }
+        deck.insertCardToBottom(Card((CardColor)cColor, (CardType)cType, cNumber));
+    }
     
     file.close();
     
@@ -1178,7 +1226,7 @@ public:
     
     showSaveMessage("Game loaded!", GREEN);
     return true;
-  }
+}
 
   void showSaveMessage(const string& msg, Color color = GREEN) {
     saveMessageText = msg;
