@@ -119,12 +119,12 @@ public:
         }
     }
 
-    T getAtIndex(int index) const
+   /* T getAtIndex(int index) const
     {
         if (index < 0 || index >= top)
             return T();
         return arr[index];
-    }
+    }*/
 
     void setAtIndex(int index, T value)
     {
@@ -268,7 +268,22 @@ public:
 
     string getCardAt(int index)
     {
-        return cards.getAtIndex(index);
+        if (index < 0 || index >= cards.sizee())
+            return "";
+        Card temp[cards.sizee()];
+        int c = 0;
+        while (!cards.isEmpty())
+        {
+            temp[c++] = cards.pop();
+        }
+        Card result = temp[index];
+
+        for (int i = c - 1; i >= 0; i--)
+        {
+            cards.push(temp[i]);
+        }
+
+        return result;
     }
 
     bool removeCard(string cardToRemove)
