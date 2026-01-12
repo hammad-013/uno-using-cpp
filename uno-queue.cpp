@@ -1,9 +1,9 @@
 #include <iostream>
 #include <string>
-#include <vector>
 #include <cstdlib>
 #include <ctime>
 #include <raylib.h>
+
 using namespace std;
 
 enum GameState {
@@ -14,10 +14,10 @@ enum GameState {
     GAME_OVER
 };
 
-// Scoring constants
 const int WINNING_SCORE = 500;
 const int WILD_SCORE = 50;
 const int ACTION_SCORE = 20;
+
 
 template <typename T>
 class queue {
@@ -25,11 +25,7 @@ private:
     struct Node {
         T data;
         Node* next;
-        Node(T val)
-        {
-
-         data=value;
-         next=nullptr; }
+        Node(T val) : data(val), next(nullptr) {}
     };
 
     Node* frontPtr;
@@ -38,13 +34,9 @@ private:
 
 public:
 
-    queue()
-    {
+    queue() : frontPtr(nullptr), rearPtr(nullptr), queueSize(0) {}
 
-     frontPtr=nullptr;
-     rearPtr=nullptr;
-    queueSize=0;
-    }
+
     ~queue() {
         clear();
     }
@@ -57,7 +49,6 @@ public:
             current = current->next;
         }
     }
-
 
     queue& operator=(const queue& other) {
         if (this != &other) {
@@ -106,6 +97,7 @@ public:
         }
         return frontPtr->data;
     }
+
 
     T back() const {
         if (empty()) {
@@ -209,13 +201,12 @@ public:
         }
     }
 
-
     bool hasColor(const string& color) const {
         Node* current = frontPtr;
 
         while (current != nullptr) {
             string cardName = current->data;
-             pos = cardName.find('_');
+            size_t pos = cardName.find('_');
             if (pos != string::npos) {
                 string cardColor = cardName.substr(0, pos);
                 if (cardColor == color) {
@@ -227,221 +218,253 @@ public:
         return false;
     }
 };
+
 class Card {
 public:
     string name;
 
     Card() { name = ""; }
-    Card(string n) { name = n; }
+    Card(string n) {
+
+        if (n.find("Draw_2") != string::npos) {
+            size_t pos = n.find("Draw_2");
+            if (pos != string::npos) {
+                n.replace(pos, 6, "DRAW_TWO");
+            }
+        }
+        name = n;
+    }
 
     string getColor() const {
-        if (name == "WILD" || name == "WILD_DRAW4") return "WILD";
+        if (name == "WILD" || name == "WILD_DRAW_FOUR") return "WILD";
 
-        int pos = 0;
-        while (pos < name.length() && name[pos] != '_') pos++;
-        if (pos >= name.length()) return "";
+        size_t pos = name.find('_');
+        if (pos == string::npos) return "";
 
-        string color = "";
-        for (int i = 0; i < pos; i++) {
-            color += name[i];
-        }
-        return color;
+        return name.substr(0, pos);
     }
- string getValue() const {
+
+    string getValue() const {
         if (name == "WILD") return "WILD";
         if (name == "WILD_DRAW_FOUR") return "DRAW_FOUR";
 
-        int pos = 0;
-        while (pos < name.length() && name[pos] != '_') pos++;
-        if (pos >= name.length()) return name;
+        size_t pos = name.find('_');
+        if (pos == string::npos) return name;
 
-        pos++;
-        string value = "";
-        for (int i = pos; i < name.length(); i++) {
-            value += name[i];
-        }
+        string value = name.substr(pos + 1);
         return value;
     }
-bool isWild() const {
-        if (name == "WILD") return true;
-        if (name == "WILD_DRAW_FOUR") return true;
-        return false;
+
+    bool isWild() const {
+        return name == "WILD" || name == "WILD_DRAW_FOUR";
     }
-bool canPlayOn(const Card& top, const string& forcedColor) const {
+
+    bool isActionCard() const {
+        string val = getValue();
+        return val == "SKIP" || val == "REVERSE" || val == "DRAW_TWO";
+    }
+
+    bool isNumberCard() const {
+        string val = getValue();
+        return val >= "0" && val <= "9";
+    }
+
+    int getScore() const {
+        if (isWild()) return WILD_SCORE;
+        if (isActionCard()) return ACTION_SCORE;
+        if (isNumberCard()) return stoi(getValue());
+        return 0;
+    }
+
+    bool canPlayOn(const Card& top, const string& activeColor) const {
         if (isWild()) return true;
 
         string myColor = getColor();
-        string topColor = top.getColor();
+        string myValue = getValue();
+        string topValue = top.getValue();
 
-        if (forcedColor != "") {
-            if (myColor == forcedColor) return true;
-            return false;
-        }
-
-        if (myColor == topColor) return true;
-        if (getValue() == top.getValue()) return true;
+        if (myColor == activeColor) return true;
+        if (myValue == topValue) return true;
 
         return false;
     }
+};
+
 class Player {
 public:
     int id;
+    string name;
+    int totalScore;
     queue<string> hand;
+    bool unoDeclared;
 
-    Player() : id(0) {}
-    Player(int pid) : id(pid) {}
+    Player() : id(0), totalScore(0), name(""), unoDeclared(false) {}
+    Player(int pid, string n) : id(pid), totalScore(0), name(n), unoDeclared(false) {}
 
     void addCard(string cardName) {
         hand.push(cardName);
+        unoDeclared = false;
     }
 
     string playCard(int index) {
-        if (index < 0 || index >= (int)hand.size()) return "";
+        if (index < 0 || index >= hand.size()) return "";
 
-        queue<string> temp;
-        string chosen = "";
-        int count = 0;
-
-        while (!hand.empty()) {
-            string c = hand.front();
-            hand.pop();
-            if (count == index) {
-                chosen = c;
-            } else {
-                temp.push(c);
-            }
-            count++;
+        string card = hand.removeAt(index);
+        if (hand.size() == 1 && !unoDeclared) {
+            unoDeclared = true;
         }
-        hand = temp;
-        return chosen;
+        return card;
     }
 
     string getCardAt(int index) const {
-        queue<string> temp = hand;
-        string result = "";
-        int count = 0;
-
-        while (!temp.empty()) {
-            if (count == index) {
-                result = temp.front();
-                break;
-            }
-            temp.pop();
-            count++;
-        }
-        return result;
+        return hand.getAt(index);
     }
 
     int getHandSize() const {
         return hand.size();
     }
+
+    int getHandScore() const {
+        int score = 0;
+        for (int i = 0; i < hand.size(); i++) {
+            string cardName = hand.getAt(i);
+            if (!cardName.empty()) {
+                Card c(cardName);
+                score += c.getScore();
+            }
+        }
+        return score;
+    }
+
+    bool hasWon() const {
+        return totalScore >= WINNING_SCORE;
+    }
+
+    void resetHand() {
+        hand.clear();
+        unoDeclared = false;
+    }
+
+    bool hasColor(const string& color) const {
+        for (int i = 0; i < hand.size(); i++) {
+            string cardName = hand.getAt(i);
+            if (!cardName.empty()) {
+                Card c(cardName);
+                if (c.getColor() == color) return true;
+            }
+        }
+        return false;
+    }
+
+    bool shouldDeclareUno() const {
+        return hand.size() == 1 && !unoDeclared;
+    }
+
+    void declareUno() {
+        if (hand.size() == 1) {
+            unoDeclared = true;
+        }
+    }
+
+    bool hasDeclaredUno() const {
+        return unoDeclared;
+    }
 };
 
-class Deck
-{
+class Deck {
 private:
     queue<string> drawPile;
     queue<string> discardPile;
 
-    void moveDiscardToDraw()
-     {
+    void moveDiscardToDraw() {
         if (discardPile.size() <= 1) return;
 
 
         string topCard = "";
-        queue<string> temp;
 
-        while (!discardPile.empty())
-        {
-            temp.push(discardPile.front());
+
+        queue<string> tempQueue;
+
+
+        while (!discardPile.empty()) {
+            string card = discardPile.front();
             discardPile.pop();
-        }
-        topCard = temp.back();
-        temp.pop();
 
+            if (discardPile.empty()) {
 
-        while (!temp.empty())
-        {
-            drawPile.push(temp.front());
-            temp.pop();
+                topCard = card;
+            } else {
+                tempQueue.push(card);
+            }
         }
 
+        int tempSize = tempQueue.size();
+        if (tempSize > 0) {
+            string* cardsArray = tempQueue.copyToArray();
 
-        string cards[108];
-        int count = 0;
-        while (!drawPile.empty())
-        {
-            cards[count] = drawPile.front();
-            drawPile.pop();
-            count++;
-        }
 
-        srand(time(0));
-        for (int i = count - 1; i > 0; i--)
-        {
-            int j = rand() % (i + 1);
-            string swapTemp = cards[i];
-            cards[i] = cards[j];
-            cards[j] = swapTemp;
-        }
+            for (int i = tempSize - 1; i > 0; i--) {
+                int j = rand() % (i + 1);
+                swap(cardsArray[i], cardsArray[j]);
+            }
 
-        for (int i = 0; i < count; i++)
-        {
-            drawPile.push(cards[i]);
+
+            drawPile.loadFromArray(cardsArray, tempSize);
+            delete[] cardsArray;
         }
 
 
-        discardPile.push(topCard);
+        if (!topCard.empty()) {
+            discardPile.push(topCard);
+        }
     }
 
 public:
     void createDeck() {
-        queue<string> allCards;
+
+        drawPile.clear();
+        discardPile.clear();
+
+
+        queue<string> tempCards;
         string colors[4] = {"RED", "GREEN", "BLUE", "YELLOW"};
 
         for (int c = 0; c < 4; c++) {
             string color = colors[c];
-            allCards.push(color + "_0");
+            tempCards.push(color + "_0");
 
             for (int n = 1; n <= 9; n++) {
                 string num = to_string(n);
-                allCards.push(color + "_" + num);
-                allCards.push(color + "_" + num);
+                tempCards.push(color + "_" + num);
+                tempCards.push(color + "_" + num);
             }
 
-            allCards.push(color + "_SKIP");
-            allCards.push(color + "_SKIP");
-            allCards.push(color + "_REVERSE");
-            allCards.push(color + "_REVERSE");
-            allCards.push(color + "_DRAW_TWO");
-            allCards.push(color + "_DRAW_TWO");
+            tempCards.push(color + "_SKIP");
+            tempCards.push(color + "_SKIP");
+            tempCards.push(color + "_REVERSE");
+            tempCards.push(color + "_REVERSE");
+            tempCards.push(color + "_DRAW_TWO");
+            tempCards.push(color + "_DRAW_TWO");
+        }
 
-            allCards.push("WILD");
-            allCards.push("WILD_DRAW_FOUR");
+        for (int i = 0; i < 4; i++) {
+            tempCards.push("WILD");
+            tempCards.push("WILD_DRAW_FOUR");
         }
 
 
-        string cardArray[108];
-        int idx = 0;
-        while (!allCards.empty()) {
-            cardArray[idx] = allCards.front();
-            allCards.pop();
-            idx++;
-        }
+        int totalCards = tempCards.size();
+        string* allCards = tempCards.copyToArray();
 
-        srand(time(0));
-        for (int i = 107; i > 0; i--) {
+
+        for (int i = totalCards - 1; i > 0; i--) {
             int j = rand() % (i + 1);
-            string temp = cardArray[i];
-            cardArray[i] = cardArray[j];
-            cardArray[j] = temp;
+            swap(allCards[i], allCards[j]);
         }
 
-        drawPile = queue<string>();
-        for (int i = 0; i < 108; i++) {
-            drawPile.push(cardArray[i]);
-        }
-        discardPile = queue<string>();
+
+        drawPile.loadFromArray(allCards, totalCards);
+        delete[] allCards;
     }
 
     string draw() {
@@ -449,6 +472,7 @@ public:
             moveDiscardToDraw();
         }
         if (drawPile.empty()) return "";
+
         string card = drawPile.front();
         drawPile.pop();
         return card;
@@ -460,19 +484,23 @@ public:
 
     string topDiscard() const {
         if (discardPile.empty()) return "";
+
+
         queue<string> temp = discardPile;
-        string top = "";
+        string lastCard = "";
+
         while (!temp.empty()) {
-            top = temp.front();
+            lastCard = temp.front();
             temp.pop();
         }
-        return top;
+        return lastCard;
     }
 
     int drawPileSize() const {
         return drawPile.size();
     }
 };
+
 class Game {
 private:
     Player players[4];
@@ -487,16 +515,23 @@ private:
     string colorBeforeWild;
     bool challengePending;
 
-
-    bool roundOver;
     string roundMessage;
     float roundMessageTimer;
     int roundWinner;
+
 
     bool gameOver;
 
 
     string lastPlayedWildCard;
+
+    bool justDrewCard;
+    string lastDrawnCard;
+    int lastDrawnCardIndex;
+
+
+    float unoMessageTimer;
+    string unoMessage;
 
 public:
     Game() : players{
@@ -512,16 +547,51 @@ public:
         challengedPlayer = -1;
         colorBeforeWild = "";
         challengePending = false;
-        roundOver = false;
         roundMessage = "";
         roundMessageTimer = 0;
         roundWinner = -1;
         gameOver = false;
         lastPlayedWildCard = "";
+        justDrewCard = false;
+        lastDrawnCard = "";
+        lastDrawnCardIndex = -1;
+        unoMessageTimer = 0;
+        unoMessage = "";
     }
 
     void start() {
         startNewRound();
+    }
+
+    void handleUnoDeclaration() {
+        Player& p = players[currentPlayer];
+        if (p.shouldDeclareUno()) {
+            p.declareUno();
+            unoMessage = p.name + " says UNO!";
+            unoMessageTimer = 2.0f;
+        }
+    }
+
+    void handleUNOPenalty() {
+        for (int i = 0; i < 4; i++) {
+            if (i == currentPlayer) continue;
+
+            Player& p = players[i];
+            if (p.getHandSize() == 1 && !p.hasDeclaredUno()) {
+
+                unoMessage = p.name + " didn't say UNO! Drawing 2 penalty cards.";
+                unoMessageTimer = 3.0f;
+
+
+                for (int j = 0; j < 2; j++) {
+                    p.addCard(deck.draw());
+                }
+
+
+                p.unoDeclared = false;
+                return;
+            }
+        }
     }
 
     bool playWildCard(int playerIdx, int cardIndex, string& msg) {
@@ -545,11 +615,12 @@ public:
             return false;
         }
 
-
         playedName = p.playCard(cardIndex);
         deck.discard(playedName);
         lastPlayedWildCard = playedName;
 
+
+        handleUnoDeclaration();
 
         if (p.getHandSize() == 0) {
             roundWinner = playerIdx;
@@ -625,6 +696,9 @@ public:
             activeColor = played.getColor();
         }
 
+
+        handleUnoDeclaration();
+
         if (p.getHandSize() == 0) {
             roundWinner = playerIdx;
             calculateRoundScores();
@@ -661,11 +735,7 @@ public:
         }
         else if (val == "REVERSE") {
             clockwise = !clockwise;
-            if (players[0].getHandSize() == 2) {
-                advanceTurn();
-            } else {
-                advanceTurn();
-            }
+            advanceTurn();
             msg = "Played: " + playedName + " - Direction reversed";
         }
         else {
@@ -673,6 +743,11 @@ public:
             msg = "Played: " + playedName;
         }
 
+
+        handleUNOPenalty();
+
+        justDrewCard = false;
+        lastDrawnCardIndex = -1;
         return true;
     }
 
@@ -682,11 +757,55 @@ public:
         } else {
             currentPlayer = (currentPlayer - 1 + 4) % 4;
         }
+        justDrewCard = false;
+        lastDrawnCardIndex = -1;
     }
 
-    void drawForCurrent() {
-        players[currentPlayer].addCard(deck.draw());
+    string drawCardForCurrent() {
+        Player& p = players[currentPlayer];
+        string drawnCard = deck.draw();
+        if (!drawnCard.empty()) {
+            p.addCard(drawnCard);
+            lastDrawnCard = drawnCard;
+            lastDrawnCardIndex = p.getHandSize() - 1;
+            justDrewCard = true;
+        }
+        return drawnCard;
+    }
+
+    void skipAfterDraw() {
+        justDrewCard = false;
+        lastDrawnCardIndex = -1;
         advanceTurn();
+    }
+
+    bool playDrawnCard() {
+        if (!justDrewCard || lastDrawnCard.empty() || lastDrawnCardIndex == -1) return false;
+
+        Player& p = players[currentPlayer];
+        Card drawnCard(lastDrawnCard);
+        Card top(deck.topDiscard());
+
+        if (drawnCard.canPlayOn(top, activeColor)) {
+            string msg;
+            bool result = play(currentPlayer, lastDrawnCardIndex, msg);
+            if (result) {
+
+                handleUNOPenalty();
+            }
+            return result;
+        }
+        return false;
+    }
+
+    bool canPlayCard(int playerIdx, int cardIndex) const {
+        if (playerIdx != currentPlayer) return false;
+
+        if (justDrewCard) {
+            return cardIndex == lastDrawnCardIndex;
+        }
+
+        return true;
     }
 
     void chooseColor(string color) {
@@ -708,6 +827,9 @@ public:
                 advanceTurn();
             }
             state = PLAYER_TURN;
+
+
+            handleUNOPenalty();
         }
     }
 
@@ -769,6 +891,17 @@ public:
     float getRoundMessageTimer() const { return roundMessageTimer; }
     GameState getState() const { return state; }
     int getChallengedPlayer() const { return challengedPlayer; }
+    bool getJustDrewCard() const { return justDrewCard; }
+    bool isClockwise() const { return clockwise; }
+
+    float getUnoMessageTimer() const { return unoMessageTimer; }
+    string getUnoMessage() const { return unoMessage; }
+
+    bool canPlayCardIndex(int playerIdx, int cardIndex) const {
+        return canPlayCard(playerIdx, cardIndex);
+    }
+
+    int getLastDrawnCardIndex() const { return lastDrawnCardIndex; }
 
     bool canPlayWildDrawFour(int playerIdx) const {
         if (playerIdx != currentPlayer) return false;
@@ -795,6 +928,10 @@ public:
                     startNewRound();
                 }
             }
+        }
+
+        if (unoMessageTimer > 0) {
+            unoMessageTimer -= deltaTime;
         }
     }
 
@@ -880,10 +1017,14 @@ private:
         }
 
         clockwise = true;
-        roundOver = false;
         roundMessageTimer = 0;
         challengePending = false;
         lastPlayedWildCard = "";
+        justDrewCard = false;
+        lastDrawnCard = "";
+        lastDrawnCardIndex = -1;
+        unoMessageTimer = 0;
+        unoMessage = "";
         state = PLAYER_TURN;
     }
 };
@@ -923,7 +1064,7 @@ class UNOGUI {
 private:
     Game* game;
     Texture2D cardBack;
-    vector<pair<string, Texture2D>> cardTextures;
+    queue<pair<string, Texture2D>> cardTextures;
     int selected = -1;
     int hovered = -1;
     string message = "";
@@ -932,7 +1073,8 @@ private:
     int selectedCardIndex = -1;
 
     Texture2D findTexture(const string& name) {
-        for (const auto& pair : cardTextures) {
+        for (int i = 0; i < cardTextures.size(); i++) {
+            auto pair = cardTextures.getAt(i);
             if (pair.first == name) {
                 return pair.second;
             }
@@ -941,7 +1083,8 @@ private:
         string upperName = name;
         for (char& c : upperName) c = toupper(c);
 
-        for (const auto& pair : cardTextures) {
+        for (int i = 0; i < cardTextures.size(); i++) {
+            auto pair = cardTextures.getAt(i);
             string upperPair = pair.first;
             for (char& c : upperPair) c = toupper(c);
             if (upperPair == upperName) {
@@ -950,7 +1093,8 @@ private:
         }
 
         if (name.find("DRAW_TWO") != string::npos) {
-            for (const auto& pair : cardTextures) {
+            for (int i = 0; i < cardTextures.size(); i++) {
+                auto pair = cardTextures.getAt(i);
                 if (pair.first.find("DRAW") != string::npos || pair.first.find("Draw") != string::npos) {
                     return pair.second;
                 }
@@ -962,144 +1106,173 @@ private:
 
     void loadImages() {
         string path = "assets/Cards/";
-        string colors[4] = {"RED", "GREEN", "BLUE", "YELLOW"};
+        string colors[4] = {"Red", "Green", "Blue", "Yellow"};
         string values[13] = {"0","1","2","3","4","5","6","7","8","9",
-                            "SKIP","REVERSE","DRAW_TWO"};
+                           "Skip","Reverse","Draw_2"};
 
         for (int c = 0; c < 4; c++) {
             for (int v = 0; v < 13; v++) {
-                string cardName = colors[c] + "_" + values[v];
+                string internalCardName;
+                string colorUpper = colors[c];
+                for (char& ch : colorUpper) ch = toupper(ch);
 
-                vector<string> filesToTry;
-                filesToTry.push_back(path + cardName + ".jpg");
-                filesToTry.push_back(path + cardName + ".png");
+                string valueUpper = values[v];
+                if (valueUpper == "Draw_2") valueUpper = "DRAW_TWO";
+                else if (valueUpper == "Skip") valueUpper = "SKIP";
+                else if (valueUpper == "Reverse") valueUpper = "REVERSE";
+                for (char& ch : valueUpper) ch = toupper(ch);
 
-                string capColor = colors[c];
-                capColor[0] = toupper(capColor[0]);
-                for (size_t i = 1; i < capColor.size(); i++) {
-                    capColor[i] = tolower(capColor[i]);
-                }
+                internalCardName = colorUpper + "_" + valueUpper;
+                string fileName = colors[c] + "_" + values[v] + ".jpg";
+                string filePath = path + fileName;
 
-                string capValue = values[v];
-                if (values[v] == "SKIP" || values[v] == "REVERSE" || values[v] == "DRAW_TWO") {
-                    capValue[0] = toupper(capValue[0]);
-                    for (size_t i = 1; i < capValue.size(); i++) {
-                        capValue[i] = tolower(capValue[i]);
-                    }
-                }
-
-                if (values[v] == "DRAW_TWO") {
-                    filesToTry.push_back(path + capColor + "_Draw_2.jpg");
-                    filesToTry.push_back(path + capColor + "_Draw_2.png");
-                }
-
-                filesToTry.push_back(path + capColor + "_" + capValue + ".jpg");
-                filesToTry.push_back(path + capColor + "_" + capValue + ".png");
-
-                bool loaded = false;
-                for (const string& file : filesToTry) {
-                    if (FileExists(file.c_str())) {
-                        Texture2D tex = LoadTexture(file.c_str());
-                        cardTextures.push_back({cardName, tex});
-                        loaded = true;
-                        break;
-                    }
-                }
-
-
-                if (!loaded) {
+                if (FileExists(filePath.c_str())) {
+                    Texture2D tex = LoadTexture(filePath.c_str());
+                    cardTextures.push({internalCardName, tex});
+                } else {
                     Color cardColor;
-                    if (colors[c] == "RED") cardColor = RED;
-                    else if (colors[c] == "GREEN") cardColor = GREEN;
-                    else if (colors[c] == "BLUE") cardColor = BLUE;
+                    if (colors[c] == "Red") cardColor = RED;
+                    else if (colors[c] == "Green") cardColor = GREEN;
+                    else if (colors[c] == "Blue") cardColor = BLUE;
                     else cardColor = YELLOW;
 
                     Image img = GenImageColor(120, 180, cardColor);
+                    string displayValue = values[v];
+                    if (displayValue == "Draw_2") displayValue = "+2";
+                    else if (displayValue == "Skip") displayValue = "S";
+                    else if (displayValue == "Reverse") displayValue = "R";
+
+                    int fontSize = 40;
+                    if (displayValue.length() > 2) fontSize = 30;
+
+                    int textWidth = MeasureText(displayValue.c_str(), fontSize);
+                    ImageDrawText(&img, displayValue.c_str(),
+                                 60 - textWidth/2, 90 - 20,
+                                 fontSize, WHITE);
+
                     Texture2D tex = LoadTextureFromImage(img);
-                    cardTextures.push_back({cardName, tex});
+                    cardTextures.push({internalCardName, tex});
                     UnloadImage(img);
                 }
             }
         }
 
 
+        string wildFiles[2] = {path + "Wild.jpg", path + "WILD.jpg"};
         bool wildLoaded = false;
-        vector<string> wildFiles = {
-            path + "WILD.jpg", path + "Wild.jpg",
-            path + "WILD.png", path + "Wild.png"
-        };
-
-        for (const string& file : wildFiles) {
-            if (FileExists(file.c_str())) {
-                Texture2D t = LoadTexture(file.c_str());
-                cardTextures.push_back({"WILD", t});
+        for (int i = 0; i < 2; i++) {
+            if (FileExists(wildFiles[i].c_str())) {
+                Texture2D tex = LoadTexture(wildFiles[i].c_str());
+                cardTextures.push({"WILD", tex});
                 wildLoaded = true;
                 break;
             }
         }
-
         if (!wildLoaded) {
             Image img = GenImageColor(120, 180, BLACK);
+            ImageDrawText(&img, "WILD", 25, 70, 40, WHITE);
             Texture2D tex = LoadTextureFromImage(img);
-            cardTextures.push_back({"WILD", tex});
+            cardTextures.push({"WILD", tex});
             UnloadImage(img);
         }
 
 
+        string wildFourFiles[2] = {path + "Wild_Draw_4.jpg", path + "WILD_DRAW_FOUR.jpg"};
         bool wildFourLoaded = false;
-        vector<string> wildFourFiles = {
-            path + "WILD_DRAW_FOUR.jpg", path + "Wild_Draw_4.jpg",
-            path + "WILD_DRAW_FOUR.png", path + "Wild_Draw_4.png"
-        };
-
-        for (const string& file : wildFourFiles) {
-            if (FileExists(file.c_str())) {
-                Texture2D t = LoadTexture(file.c_str());
-                cardTextures.push_back({"WILD_DRAW_FOUR", t});
+        for (int i = 0; i < 2; i++) {
+            if (FileExists(wildFourFiles[i].c_str())) {
+                Texture2D tex = LoadTexture(wildFourFiles[i].c_str());
+                cardTextures.push({"WILD_DRAW_FOUR", tex});
                 wildFourLoaded = true;
                 break;
             }
         }
-
         if (!wildFourLoaded) {
             Image img = GenImageColor(120, 180, DARKPURPLE);
+            ImageDrawText(&img, "WILD", 25, 50, 40, WHITE);
+            ImageDrawText(&img, "DRAW 4", 15, 100, 30, WHITE);
             Texture2D tex = LoadTextureFromImage(img);
-            cardTextures.push_back({"WILD_DRAW_FOUR", tex});
+            cardTextures.push({"WILD_DRAW_FOUR", tex});
             UnloadImage(img);
         }
 
 
-        vector<string> backFiles = {
-            path + "back.jpg", path + "BACK.jpg",
-            path + "back.png", path + "BACK.png"
-        };
-
+        string backFiles[2] = {path + "back.jpg", path + "BACK.jpg"};
         bool backLoaded = false;
-        for (const string& file : backFiles) {
-            if (FileExists(file.c_str())) {
-                cardBack = LoadTexture(file.c_str());
+        for (int i = 0; i < 2; i++) {
+            if (FileExists(backFiles[i].c_str())) {
+                cardBack = LoadTexture(backFiles[i].c_str());
                 backLoaded = true;
                 break;
             }
         }
-
         if (!backLoaded) {
-            Image img = GenImageColor(120, 180, DARKBLUE);
+            Image img = GenImageColor(120, 180, Color{46, 125, 50, 255});
+            for (int y = 0; y < 180; y += 20) {
+                for (int x = 0; x < 120; x += 20) {
+                    if ((x/20 + y/20) % 2 == 0) {
+                        ImageDrawRectangle(&img, x, y, 20, 20, Color{255, 87, 34, 255});
+                    } else {
+                        ImageDrawRectangle(&img, x, y, 20, 20, Color{33, 150, 243, 255});
+                    }
+                }
+            }
+            ImageDrawText(&img, "UNO", 25, 70, 50, WHITE);
             cardBack = LoadTextureFromImage(img);
             UnloadImage(img);
         }
     }
 
-    void drawCard(const string& name, float x, float y, float w, float h, bool highlight) {
+    void drawCard(const string& name, float x, float y, float w, float h, bool highlight, bool disabled = false) {
         Texture2D tex = findTexture(name);
-        if (tex.id == 0) tex = cardBack;
+        if (tex.id == 0) {
+            Card c(name);
+            Color cardColor;
+            string colorStr = c.getColor();
 
-        Rectangle src = {0, 0, (float)tex.width, (float)tex.height};
-        Rectangle dest = {x, y, w, h};
-        DrawTexturePro(tex, src, dest, {0,0}, 0, WHITE);
+            if (colorStr == "RED") cardColor = RED;
+            else if (colorStr == "GREEN") cardColor = GREEN;
+            else if (colorStr == "BLUE") cardColor = BLUE;
+            else if (colorStr == "YELLOW") cardColor = YELLOW;
+            else if (c.isWild()) cardColor = BLACK;
+            else cardColor = GRAY;
+
+            if (disabled) {
+                cardColor = Color{
+                    (unsigned char)(cardColor.r * 0.5f),
+                    (unsigned char)(cardColor.g * 0.5f),
+                    (unsigned char)(cardColor.b * 0.5f),
+                    cardColor.a
+                };
+            }
+
+            DrawRectangle(x, y, w, h, cardColor);
+
+            string val = c.getValue();
+            if (val == "DRAW_TWO") val = "+2";
+            else if (val == "DRAW_FOUR") val = "+4";
+
+            int fontSize = 30;
+            if (val.length() > 2) fontSize = 20;
+
+            int textWidth = MeasureText(val.c_str(), fontSize);
+            DrawText(val.c_str(), x + w/2 - textWidth/2, y + h/2 - 15, fontSize, disabled ? GRAY : WHITE);
+
+            DrawRectangleLines(x, y, w, h, BLACK);
+        } else {
+            Rectangle src = {0, 0, (float)tex.width, (float)tex.height};
+            Rectangle dest = {x, y, w, h};
+            Color tint = disabled ? GRAY : WHITE;
+            DrawTexturePro(tex, src, dest, {0,0}, 0, tint);
+        }
 
         if (highlight) {
             DrawRectangleLines(x-3, y-3, w+6, h+6, YELLOW);
+        }
+
+        if (disabled) {
+            DrawLine(x, y, x + w, y + h, RED);
+            DrawLine(x + w, y, x, y + h, RED);
         }
     }
 
@@ -1109,9 +1282,328 @@ private:
             Rectangle dest = {x,y,w,h};
             DrawTexturePro(cardBack, src, dest, {0,0}, 0, WHITE);
         } else {
-            DrawRectangle(x, y, w, h, DARKBLUE);
+            DrawRectangle(x, y, w, h, Color{46, 125, 50, 255});
+            DrawRectangleLines(x, y, w, h, WHITE);
             DrawText("UNO", x + 20, y + 60, 40, YELLOW);
         }
+    }
+
+public:
+    UNOGUI(Game* g) : game(g) {
+        InitWindow(1400, 900, "UNO - 4 Players");
+        SetTargetFPS(60);
+        loadImages();
+    }
+
+    ~UNOGUI() {
+        for (int i = 0; i < cardTextures.size(); i++) {
+            auto pair = cardTextures.getAt(i);
+            UnloadTexture(pair.second);
+        }
+        if (cardBack.id != 0) UnloadTexture(cardBack);
+        CloseWindow();
+    }
+
+    void run() {
+        game->start();
+
+        while (!WindowShouldClose()) {
+            game->update(GetFrameTime());
+
+            if (msgTime > 0) msgTime -= GetFrameTime();
+
+            BeginDrawing();
+            ClearBackground(Color{48, 25, 52, 255});
+
+            if (game->getState() == GAME_OVER) {
+                drawGameOver();
+            } else if (game->isRoundOver()) {
+                drawRoundSummary();
+            } else if (game->isChallengePending()) {
+                drawChallengeScreen();
+            } else if (game->isChoosingColor()) {
+                drawColorChoice();
+            } else {
+                drawMain();
+            }
+
+            if (msgTime > 0) {
+                DrawRectangle(100, 100, 500, 80, {0,0,0,200});
+                DrawRectangleLines(100, 100, 500, 80, YELLOW);
+                DrawText(message.c_str(), 120, 130, 24, YELLOW);
+            }
+
+            EndDrawing();
+        }
+    }
+
+    void drawMain() {
+        int cp = game->getCurrent();
+        if (cp < 0 || cp >= 4) return;
+
+        Player curr = game->getPlayer(cp);
+
+
+        DrawRectangle(0, 0, 1400, 50, {0, 0, 0, 150});
+        DrawText("SCORES:", 20, 15, 24, YELLOW);
+
+        int scoreX = 150;
+        for (int i = 0; i < 4; i++) {
+            Player p = game->getPlayer(i);
+            string scoreText = p.name + ": " + to_string(p.totalScore) + " pts";
+            Color textColor = (i == cp) ? YELLOW : WHITE;
+            DrawText(scoreText.c_str(), scoreX, 15, 20, textColor);
+            scoreX += 300;
+        }
+
+
+        DrawRectangle(50, 100, 400, 350, {0, 0, 0, 180});
+        DrawRectangleLines(50, 100, 400, 350, YELLOW);
+
+        DrawText(TextFormat("Player %d's Turn", cp + 1), 70, 120, 30, WHITE);
+
+        string activeColorText = "Active Color: " + game->getColor();
+        Color activeColor = WHITE;
+        string colorStr = game->getColor();
+        if (colorStr == "RED") activeColor = RED;
+        else if (colorStr == "BLUE") activeColor = BLUE;
+        else if (colorStr == "GREEN") activeColor = GREEN;
+        else if (colorStr == "YELLOW") activeColor = YELLOW;
+
+        DrawText("Active Color:", 70, 160, 20, WHITE);
+        DrawText(colorStr.c_str(), 200, 160, 20, activeColor);
+
+        string directionText = "Direction: " + string(game->isClockwise() ? "Clockwise" : "Counter-Clockwise");
+        DrawText(directionText.c_str(), 70, 190, 20, WHITE);
+
+        DrawLine(70, 220, 420, 220, WHITE);
+
+        DrawText("Player Cards:", 70, 240, 22, YELLOW);
+
+        int playerInfoY = 270;
+        for (int i = 0; i < 4; i++) {
+            Player p = game->getPlayer(i);
+            string cardText = p.name + ": " + to_string(p.getHandSize()) + " cards";
+            Color textColor = (i == cp) ? YELLOW : WHITE;
+
+            if (p.getHandSize() == 1) {
+                DrawRectangle(70, playerInfoY - 5, 350, 30, {255, 0, 0, 100});
+                if (p.hasDeclaredUno()) {
+                    cardText += " - UNO!";
+                } else {
+                    cardText += " - SAY UNO!";
+                }
+            }
+
+            DrawText(cardText.c_str(), 80, playerInfoY, 20, textColor);
+            playerInfoY += 40;
+        }
+
+
+        if (game->getUnoMessageTimer() > 0) {
+            string unoMsg = game->getUnoMessage();
+            DrawRectangle(500, 200, 400, 60, {0, 0, 0, 200});
+            DrawRectangleLines(500, 200, 400, 60, RED);
+            DrawText(unoMsg.c_str(), 700 - MeasureText(unoMsg.c_str(), 30)/2, 215, 30, YELLOW);
+        }
+
+
+        drawBack(500, 300, 120, 180);
+        DrawText("Draw Deck", 515, 500, 20, WHITE);
+
+
+        string top = game->getTop();
+        if (top != "") {
+            drawCard(top, 650, 300, 120, 180, false);
+            DrawText("Discard Pile", 660, 500, 20, WHITE);
+        }
+
+        int size = curr.getHandSize();
+        if (size == 0) return;
+
+
+        int cardW, cardH, spacing;
+        if (size <= 8) {
+            cardW = 100;
+            cardH = 150;
+            spacing = 110;
+        } else if (size <= 12) {
+            cardW = 90;
+            cardH = 135;
+            spacing = 95;
+        } else if (size <= 16) {
+            cardW = 80;
+            cardH = 120;
+            spacing = 85;
+        } else {
+            cardW = 70;
+            cardH = 105;
+            spacing = 75;
+        }
+
+        int startX = max(400, (1400 - (size * spacing)) / 2);
+        int startY = 900 - cardH - 50;
+
+        hovered = -1;
+
+        for (int i = 0; i < size; i++) {
+            string cardName = curr.getCardAt(i);
+            if (cardName.empty()) continue;
+
+            int x = startX + i * spacing;
+            int y = startY;
+            bool isHover = false;
+
+            bool canPlay = game->canPlayCardIndex(cp, i);
+
+            Vector2 mouse = GetMousePosition();
+            if (mouse.x >= x && mouse.x <= x + cardW && mouse.y >= y && mouse.y <= y + cardH) {
+                if (canPlay) {
+                    isHover = true;
+                    hovered = i;
+                    y -= 20;
+                }
+            }
+
+            bool isSelected = (i == selected);
+            drawCard(cardName, x, y, cardW, cardH, isHover || isSelected, !canPlay);
+
+            if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON) && isHover && canPlay) {
+                if (selected == i) {
+                    selected = -1;
+                } else {
+                    selected = i;
+                }
+            }
+        }
+
+        bool showUNOButton = curr.shouldDeclareUno();
+
+        if (showUNOButton) {
+            Button unoBtn(1150, 100, 200, 50, "SAY UNO!");
+            unoBtn.drawWithColor(RED);
+            if (unoBtn.clicked()) {
+                curr.declareUno();
+                message = "UNO declared!";
+                msgTime = 2;
+            }
+        } else {
+
+            Button checkUNOBtn(1150, 100, 200, 50, "CHECK UNO");
+            checkUNOBtn.drawWithColor(ORANGE);
+            if (checkUNOBtn.clicked()) {
+
+                message = "Checking for UNO violations...";
+                msgTime = 1;
+            }
+        }
+
+        if (game->getJustDrewCard()) {
+            Button playDrawnBtn(1150, 170, 200, 50, "PLAY DRAWN CARD");
+            playDrawnBtn.drawWithColor(Color{216, 191, 216, 255});
+
+            Button skipBtn(1150, 240, 200, 50, "SKIP TURN");
+            skipBtn.drawWithColor(ORANGE);
+
+            if (playDrawnBtn.clicked()) {
+                if (game->playDrawnCard()) {
+                    message = "Played drawn card";
+                    selected = -1;
+                } else {
+                    message = "Cannot play drawn card";
+                }
+                msgTime = 2;
+            }
+
+            if (skipBtn.clicked()) {
+                game->skipAfterDraw();
+                message = "Turn skipped";
+                msgTime = 2;
+            }
+        } else {
+            Button drawBtn(1150, 170, 200, 50, "DRAW CARD");
+            drawBtn.drawWithColor(Color{216, 191, 216, 255});
+            if (drawBtn.clicked()) {
+                string drawnCard = game->drawCardForCurrent();
+                if (!drawnCard.empty()) {
+                    message = "Drew a card";
+                    msgTime = 2;
+                    selected = -1;
+
+                    Card c(drawnCard);
+                    Card top(game->getTop());
+                    if (c.canPlayOn(top, game->getColor())) {
+                        message += " (can be played)";
+                    }
+                }
+            }
+        }
+
+        if (selected >= 0 && game->canPlayCardIndex(cp, selected)) {
+            Button playBtn(1150, 310, 200, 50, "PLAY SELECTED");
+            playBtn.draw();
+            if (playBtn.clicked()) {
+                string cardName = curr.getCardAt(selected);
+                if (cardName.empty()) {
+                    message = "Invalid card selection!";
+                    msgTime = 2;
+                    selected = -1;
+                    return;
+                }
+
+                Card c(cardName);
+
+                if (c.isWild()) {
+                    string msg;
+                    if (game->play(cp, selected, msg)) {
+                        selected = -1;
+                        selectedCardIndex = selected;
+                        choosingColor = true;
+                    }
+                    message = msg;
+                    msgTime = 2;
+                } else {
+                    string msg;
+                    if (game->play(cp, selected, msg)) {
+                        selected = -1;
+                    }
+                    message = msg;
+                    msgTime = 2;
+                }
+            }
+        }
+
+
+        int drawCount = game->drawSize();
+        string drawText = "Cards left: " + to_string(drawCount);
+        DrawText(drawText.c_str(), 525, 550, 20, WHITE);
+    }
+
+    void drawColorChoice() {
+        DrawRectangle(0, 0, 1400, 900, {0,0,0,180});
+        DrawText("Choose Color for Wild", 500, 200, 40, WHITE);
+
+        Button red(400, 400, 150, 150, "RED");
+        Button blue(600, 400, 150, 150, "BLUE");
+        Button green(800, 400, 150, 150, "GREEN");
+        Button yellow(1000, 400, 150, 150, "YELLOW");
+
+        red.draw();    DrawRectangle(420, 420, 110, 110, RED);
+        blue.draw();   DrawRectangle(620, 420, 110, 110, BLUE);
+        green.draw();  DrawRectangle(820, 420, 110, 110, GREEN);
+        yellow.draw(); DrawRectangle(1020, 420, 110, 110, YELLOW);
+
+        if (red.clicked()) finishWild("RED");
+        if (blue.clicked()) finishWild("BLUE");
+        if (green.clicked()) finishWild("GREEN");
+        if (yellow.clicked()) finishWild("YELLOW");
+    }
+
+    void finishWild(string color) {
+        game->chooseColor(color);
+        message = "Color set to " + color;
+        msgTime = 2;
+        choosingColor = false;
     }
 
     void drawRoundSummary() {
@@ -1124,22 +1616,38 @@ private:
         DrawText("ROUND SUMMARY", 500, 230, 40, YELLOW);
 
         string summary = game->getRoundMessage();
-        vector<string> lines;
-        size_t start = 0;
-        size_t end = summary.find('\n');
-        while (end != string::npos) {
-            lines.push_back(summary.substr(start, end - start));
-            start = end + 1;
-            end = summary.find('\n', start);
+
+
+        int lineCount = 0;
+        for (char c : summary) {
+            if (c == '\n') lineCount++;
         }
-        lines.push_back(summary.substr(start));
+        lineCount++;
+
+        string* lines = new string[lineCount];
+        int currentLine = 0;
+        string currentStr = "";
+
+        for (char c : summary) {
+            if (c == '\n') {
+                lines[currentLine++] = currentStr;
+                currentStr = "";
+            } else {
+                currentStr += c;
+            }
+        }
+        if (!currentStr.empty()) {
+            lines[currentLine] = currentStr;
+        }
 
         int lineY = 300;
-        for (const string& line : lines) {
-            int width = MeasureText(line.c_str(), 24);
-            DrawText(line.c_str(), 700 - width/2, lineY, 24, WHITE);
+        for (int i = 0; i < lineCount; i++) {
+            int width = MeasureText(lines[i].c_str(), 24);
+            DrawText(lines[i].c_str(), 700 - width/2, lineY, 24, WHITE);
             lineY += 35;
         }
+
+        delete[] lines;
 
         int countdown = (int)game->getRoundMessageTimer() + 1;
         string countText = "Next round in " + to_string(countdown) + "...";
@@ -1178,201 +1686,6 @@ private:
             message = "Drawing 4 cards...";
             msgTime = 2;
         }
-    }
-
-public:
-    UNOGUI(Game* g) : game(g) {
-        InitWindow(1400, 900, "UNO - 4 Players");
-        SetTargetFPS(60);
-        loadImages();
-    }
-
-    ~UNOGUI() {
-        for (auto& pair : cardTextures) {
-            UnloadTexture(pair.second);
-        }
-        if (cardBack.id != 0) UnloadTexture(cardBack);
-        CloseWindow();
-    }
-
-    void run() {
-        game->start();
-
-        while (!WindowShouldClose()) {
-            game->update(GetFrameTime());
-
-            if (msgTime > 0) msgTime -= GetFrameTime();
-
-            BeginDrawing();
-            ClearBackground({20, 100, 40, 255});
-
-            if (game->getState() == GAME_OVER) {
-                drawGameOver();
-            } else if (game->isRoundOver()) {
-                drawRoundSummary();
-            } else if (game->isChallengePending()) {
-                drawChallengeScreen();
-            } else if (game->isChoosingColor()) {
-                drawColorChoice();
-            } else {
-                drawMain();
-            }
-
-            if (msgTime > 0) {
-                DrawRectangle(100, 100, 500, 80, {0,0,0,200});
-                DrawRectangleLines(100, 100, 500, 80, YELLOW);
-                DrawText(message.c_str(), 120, 130, 24, YELLOW);
-            }
-
-            EndDrawing();
-        }
-    }
-
-    void drawMain() {
-        int cp = game->getCurrent();
-        if (cp < 0 || cp >= 4) return;
-
-        Player curr = game->getPlayer(cp);
-
-        DrawRectangle(0, 0, 1400, 60, {0, 0, 0, 150});
-        DrawText("SCORES:", 20, 20, 24, YELLOW);
-
-        int scoreX = 150;
-        for (int i = 0; i < 4; i++) {
-            Player p = game->getPlayer(i);
-            string scoreText = p.name + ": " + to_string(p.totalScore);
-            Color scoreColor = (i == cp) ? YELLOW : WHITE;
-            DrawText(scoreText.c_str(), scoreX, 20, 24, scoreColor);
-            scoreX += 250;
-        }
-
-        DrawText(TextFormat("Player %d's Turn", cp + 1), 600, 70, 30, WHITE);
-        DrawText(TextFormat("Active Color: %s", game->getColor().c_str()), 600, 110, 20, WHITE);
-
-        drawBack(400, 300, 120, 180);
-        DrawText(TextFormat("Draw: %d", game->drawSize()), 420, 500, 20, WHITE);
-
-        string top = game->getTop();
-        if (top != "") {
-            drawCard(top, 600, 300, 120, 180, false);
-            DrawText("Discard", 620, 500, 20, WHITE);
-        }
-
-        int size = curr.getHandSize();
-        if (size == 0) return;
-
-        int cardW = 100;
-        int cardH = 150;
-        int spacing = 90;
-        if (size > 12) {
-            cardW = 80;
-            cardH = 120;
-            spacing = 70;
-        }
-
-        int startX = max(50, (1400 - (size * spacing)) / 2);
-        int startY = 900 - cardH - 50;
-
-        hovered = -1;
-
-        for (int i = 0; i < size; i++) {
-            string cardName = curr.getCardAt(i);
-            if (cardName.empty()) continue;
-
-            int x = startX + i * spacing;
-            int y = startY;
-            bool isHover = false;
-
-            Vector2 mouse = GetMousePosition();
-            if (mouse.x >= x && mouse.x <= x + cardW && mouse.y >= y && mouse.y <= y + cardH) {
-                isHover = true;
-                hovered = i;
-                y -= 20;
-            }
-
-            bool isSelected = (i == selected);
-            drawCard(cardName, x, y, cardW, cardH, isHover || isSelected);
-
-            if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON) && isHover) {
-                if (selected == i) {
-                    selected = -1;
-                } else {
-                    selected = i;
-                }
-            }
-        }
-
-        Button drawBtn(1200, 700, 150, 50, "DRAW CARD");
-        drawBtn.draw();
-        if (drawBtn.clicked()) {
-            game->drawForCurrent();
-            message = "Drew a card";
-            msgTime = 2;
-            selected = -1;
-        }
-
-        if (selected >= 0) {
-            Button playBtn(1200, 600, 150, 50, "PLAY");
-            playBtn.draw();
-            if (playBtn.clicked()) {
-                string cardName = curr.getCardAt(selected);
-                if (cardName.empty()) {
-                    message = "Invalid card selection!";
-                    msgTime = 2;
-                    selected = -1;
-                    return;
-                }
-
-                Card c(cardName);
-
-                if (c.isWild()) {
-                    string msg;
-                    if (game->play(cp, selected, msg)) {
-                        selected = -1;
-                        selectedCardIndex = selected;
-                        choosingColor = true;
-                    }
-                    message = msg;
-                    msgTime = 2;
-                } else {
-                    string msg;
-                    if (game->play(cp, selected, msg)) {
-                        selected = -1;
-                    }
-                    message = msg;
-                    msgTime = 2;
-                }
-            }
-        }
-    }
-
-    void drawColorChoice() {
-        DrawRectangle(0, 0, 1400, 900, {0,0,0,180});
-        DrawText("Choose Color for Wild", 500, 200, 40, WHITE);
-
-        Button red(400, 400, 150, 150, "RED");
-        Button blue(600, 400, 150, 150, "BLUE");
-        Button green(800, 400, 150, 150, "GREEN");
-        Button yellow(1000, 400, 150, 150, "YELLOW");
-
-        red.draw();    DrawRectangle(420, 420, 110, 110, RED);
-        blue.draw();   DrawRectangle(620, 420, 110, 110, BLUE);
-        green.draw();  DrawRectangle(820, 420, 110, 110, GREEN);
-        yellow.draw(); DrawRectangle(1020, 420, 110, 110, YELLOW);
-
-        if (red.clicked()) finishWild("RED");
-        if (blue.clicked()) finishWild("BLUE");
-        if (green.clicked()) finishWild("GREEN");
-        if (yellow.clicked()) finishWild("YELLOW");
-    }
-
-    void finishWild(string color) {
-        game->chooseColor(color);
-
-        message = "Color set to " + color;
-        msgTime = 2;
-
-        choosingColor = false;
     }
 
     void drawGameOver() {
