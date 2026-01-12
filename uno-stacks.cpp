@@ -1,11 +1,10 @@
 #include <iostream>
+#include <string>
+#include <cstdlib>
 #include <cstring>
 #include <ctime>
-#include <vector>
-#include <cstdlib>
 #include <raylib.h>
 using namespace std;
-
 
 template <typename T>
 class Stack
@@ -27,7 +26,6 @@ private:
         arr = newArr;
     }
 
-
 public:
     Stack() : capacity(10), top(0)
     {
@@ -42,7 +40,8 @@ public:
             arr[i] = other.arr[i];
         }
     }
-      Stack& operator=(const Stack& other)
+
+    Stack& operator=(const Stack& other)
     {
         if (this != &other)
         {
@@ -57,7 +56,8 @@ public:
         }
         return *this;
     }
-~Stack()
+
+    ~Stack()
     {
         delete[] arr;
     }
@@ -70,9 +70,8 @@ public:
         }
         arr[top++] = value;
     }
-   
 
- T pop()
+    T pop()
     {
         if (isEmpty())
         {
@@ -104,6 +103,7 @@ public:
     {
         top = 0;
     }
+
     void shuffle()
     {
         if (isEmpty() || sizee() == 1)
@@ -118,9 +118,36 @@ public:
             arr[j] = temp;
         }
     }
+
+    T getAtIndex(int index) const
+    {
+        if (index < 0 || index >= top)
+            return T();
+        return arr[index];
+    }
+
+    void setAtIndex(int index, T value)
+    {
+        if (index >= 0 && index < top)
+        {
+            arr[index] = value;
+        }
+    }
+
+    bool removeAtIndex(int index)
+    {
+        if (index < 0 || index >= top)
+            return false;
+
+        for (int i = index; i < top - 1; i++)
+        {
+            arr[i] = arr[i + 1];
+        }
+        top--;
+        return true;
+    }
 };
 
-    
 class Card
 {
 public:
@@ -190,7 +217,8 @@ public:
         }
         return value;
     }
-        bool isWild()
+
+    bool isWild()
     {
         return (fullName == "Wild" || fullName == "Wild_Draw_4");
     }
@@ -200,7 +228,8 @@ public:
         string val = getValue();
         return (val == "Skip" || val == "Reverse" || val == "Draw_2" || val == "Draw_4");
     }
-     bool canPlayOn(Card topCard, string currentColor)
+
+    bool canPlayOn(Card topCard, string currentColor)
     {
         if (isWild())
         {
@@ -215,6 +244,7 @@ public:
         return (getColor() == topCard.getColor() || getValue() == topCard.getValue());
     }
 };
+
 class Hand
 {
 private:
@@ -235,71 +265,45 @@ public:
     {
         return cards.isEmpty();
     }
-     string getCardAt(int index)
+
+    string getCardAt(int index)
     {
-        if (index < 0 || index >= sizee())
-            return "";
-
-        Stack<string> temp;
-        string result = "";
-
-        int n = sizee();
-        int targetFromTop = n - 1 - index;
-
-        int currentFromTop = 0;
-        for (int i = 0; i<=targetFromTop;i++)
-        {
-            string card = cards.pop();
-            if (i == targetFromTop)
-                result = card;
-            temp.push(card);
-        }
-
-        while (!temp.isEmpty())
-            cards.push(temp.pop());
-
-        return result;
+        return cards.getAtIndex(index);
     }
-bool removeCard(string cardToRemove)
+
+    bool removeCard(string cardToRemove)
     {
-        Stack<string> temp;
-        bool found = false;
-
-        while (!cards.isEmpty())
+        for (int i = 0; i < cards.sizee(); i++)
         {
-            string card = cards.pop();
-            if (card == cardToRemove && !found)
+            if (cards.getAtIndex(i) == cardToRemove)
             {
-                found = true;
-                break;
-            }
-            else
-            {
-                temp.push(card);
+                return cards.removeAtIndex(i);
             }
         }
+        return false;
+    }
 
-        while (!temp.isEmpty())
-        {
-            cards.push(temp.pop());
-        }
-
-        return found;
+    void clear()
+    {
+        cards.Clear();
     }
 };
+
 class Player
 {
 public:
     int id;
     Hand hand;
+    int score;
 
-    Player() : id(0) {}
-    Player(int playerId) : id(playerId) {}
+    Player() : id(0), score(0) {}
+    Player(int playerId) : id(playerId), score(0) {}
 
     void drawCard(string card)
     {
         hand.addCard(card);
     }
+
     string playCard(int index)
     {
         string card = hand.getCardAt(index);
@@ -309,11 +313,23 @@ public:
         }
         return card;
     }
-      int getHandSize()
+
+    int getHandSize()
     {
         return hand.sizee();
     }
+
+    void addScore(int points)
+    {
+        score += points;
+    }
+
+    int getScore() const
+    {
+        return score;
+    }
 };
+
 class Deck
 {
 private:
@@ -321,7 +337,7 @@ private:
     Stack<string> discardPile;
 
 public:
- void createDeck()
+    void createDeck()
     {
         drawPile.Clear();
         discardPile.Clear();
@@ -331,7 +347,7 @@ public:
         {
             string color = colors[c];
             drawPile.push(color + "_0");
-              for (int num = 1; num<=9; num++)
+            for (int num = 1; num<=9; num++)
             {
                 string numStr = to_string(num);
                 drawPile.push(color + "_" + numStr);
@@ -348,7 +364,8 @@ public:
         }
         drawPile.shuffle();
     }
-     string drawCard()
+
+    string drawCard()
     {
         if (drawPile.isEmpty())
         {
@@ -362,10 +379,12 @@ public:
 
         return drawPile.pop();
     }
-      void discard(string card)
+
+    void discard(string card)
     {
         discardPile.push(card);
     }
+
     string getTopDiscard() const
     {
         if (discardPile.isEmpty())
@@ -374,13 +393,15 @@ public:
         }
         return discardPile.peek();
     }
-     void reshuffleDiscard()
+
+    void reshuffleDiscard()
     {
         if (discardPile.sizee() <= 1)
         {
             return;
         }
         string topCard = discardPile.pop();
+
         while (!discardPile.isEmpty())
         {
             drawPile.push(discardPile.pop());
@@ -389,14 +410,17 @@ public:
         drawPile.shuffle();
         discardPile.push(topCard);
     }
+
     int getDrawPileSize()
     {
         return drawPile.sizee();
     }
+
     int getDiscardPileSize()
     {
         return discardPile.sizee();
     }
+
     string flipStartCard()
     {
         string card = drawCard();
@@ -406,7 +430,8 @@ public:
         }
         return card;
     }
-}; 
+};
+
 class Game
 {
 private:
@@ -417,57 +442,28 @@ private:
     bool clockwise;
     string currentColor;
     bool gameOver;
-
+    string colorBeforeWild;
     bool challengeAvailable;
     int lastWildDraw4Player;
     string lastDrawnCard;
     bool drawnCardPlayable;
-    int roundWinner;
+    int gameWinner;
 
     Player getPlayerAt(int index)
     {
-        Stack<Player> temp;
-        Player result;
-        int coun = 0;
-
-        while (!players.isEmpty())
-        {
-            Player p = players.pop();
-            if (coun == index)
-            {
-                result = p;
-            }
-            temp.push(p);
-            coun++;
-        }
-        while (!temp.isEmpty())
-        {
-            players.push(temp.pop());
-        }
-        return result;
+        if (index < 0 || index >= totalPlayers)
+            return Player();
+        return players.getAtIndex(index);
     }
+
     void updatePlayerAt(int index, Player updatedPlayer)
     {
-        Stack<Player> temp;
-        int countt = 0;
-        while (!players.isEmpty())
+        if (index >= 0 && index < totalPlayers)
         {
-            Player p = players.pop();
-            if (countt == index)
-            {
-                temp.push(updatedPlayer);
-            }
-            else
-            {
-                temp.push(p);
-            }
-            countt++;
-        }
-        while (!temp.isEmpty())
-        {
-            players.push(temp.pop());
+            players.setAtIndex(index, updatedPlayer);
         }
     }
+
     int getNextPlayerIndex()
     {
         if (clockwise)
@@ -479,53 +475,34 @@ private:
             return (currentPlayerIndex - 1 + totalPlayers) % totalPlayers;
         }
     }
+
     int getCardPoints(string cardName)
     {
-        Card card(cardName);
-        string value = card.getValue();
-
-        if (value == "1") return 1;
-        if (value == "2") return 2;
-        if (value == "3") return 3;
-        if (value == "4") return 4;
-        if (value == "5") return 5;
-        if (value == "6") return 6;
-        if (value == "7") return 7;
-        if (value == "8") return 8;
-        if (value == "9") return 9;
-        if (value == "0") return 0;
-
-        if (value == "Draw_2" || value == "Reverse" || value == "Skip") return 20;
-
-        if (card.isWild()) return 50;
-
-        return 0;
+        return 1;
     }
 
     void calculateGameScore(int winnerIndex)
     {
-        int totalPoints = 0;
         for (int i = 0; i < totalPlayers; i++)
         {
-            if (i != winnerIndex)
+            Player p = getPlayerAt(i);
+            if (i == winnerIndex)
             {
-                Player p = getPlayerAt(i);
-                for (int j = 0; j < p.getHandSize(); j++)
-                {
-                    string cardName = p.hand.getCardAt(j);
-                    totalPoints += getCardPoints(cardName);
-                }
+                p.score = 0;
             }
+            else
+            {
+                p.score = -(p.getHandSize());
+            }
+            updatePlayerAt(i, p);
         }
-        Player winner = getPlayerAt(winnerIndex);
-        winner.addScore(totalPoints);
-        updatePlayerAt(winnerIndex, winner);
     }
+
 public:
     Game() : currentPlayerIndex(0), totalPlayers(4), clockwise(true),
      currentColor(""), gameOver(false), challengeAvailable(false),
      lastWildDraw4Player(-1), lastDrawnCard(""), drawnCardPlayable(false),
-     roundWinner(-1)
+     gameWinner(-1)
     {
         for (int i = 0; i < 4; i++)
         {
@@ -537,38 +514,79 @@ public:
     {
          return totalPlayers;
     }
+
     int getCurrentPlayerIndex() const
     {
          return currentPlayerIndex;
     }
+
     bool getClockwise() const
     {
          return clockwise;
     }
+
     string getCurrentColor() const
     {
          return currentColor;
     }
+
     string getTopDiscard() const
     {
          return deck.getTopDiscard();
     }
+
     Player getPlayerAtPublic(int index)
     {
          return getPlayerAt(index);
     }
+
     bool isGameOver() const
     {
          return gameOver;
     }
+
     int getDrawPileSize()
     {
          return deck.getDrawPileSize();
     }
+
+    int getDiscardPileSize()
+    {
+         return deck.getDiscardPileSize();
+    }
+
+    bool canDrawFromDeck()
+    {
+        int totalAvailable = deck.getDrawPileSize();
+        if (deck.getDiscardPileSize() > 1)
+        {
+            totalAvailable += deck.getDiscardPileSize() - 1;
+        }
+        return totalAvailable > 0;
+    }
+
+    bool currentPlayerHasPlayableCard()
+    {
+        Player currentPlayer = getPlayerAt(currentPlayerIndex);
+        Card topCard(deck.getTopDiscard());
+
+        for (int i = 0; i < currentPlayer.getHandSize(); i++)
+        {
+            string cardName = currentPlayer.hand.getCardAt(i);
+            Card card(cardName);
+            if (card.canPlayOn(topCard, currentColor))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
     string getLastDrawnCard() const
     {
         return lastDrawnCard;
     }
+
     int getPlayerScore(int playerIndex)
     {
         if (playerIndex >= 0 && playerIndex < totalPlayers)
@@ -578,27 +596,12 @@ public:
         }
         return 0;
     }
-    int getRoundWinner() const
+
+    int getGameWinner() const
     {
-        return roundWinner;
+        return gameWinner;
     }
-    void checkScoreLimit()
-    {
-        if (getGameWinner() != -1)
-        {
-            gameOver = true;
-        }
-    }
-    int getGameWinner()
-    {
-        for (int i = 0; i < totalPlayers; i++)
-        {
-            Player p = getPlayerAt(i);
-            if (p.getScore() >= 500)
-                return i;
-        }
-        return -1;
-    }
+
     void startGame()
     {
         deck.createDeck();
@@ -611,6 +614,7 @@ public:
             }
             updatePlayerAt(i, p);
         }
+
         string startCard = deck.flipStartCard();
         Card start(startCard);
         while (start.isWild())
@@ -619,7 +623,9 @@ public:
             startCard = deck.getTopDiscard();
             start = Card(startCard);
         }
+
         currentColor = start.getColor();
+
         if (start.getValue() == "Skip")
         {
             currentPlayerIndex = 1;
@@ -636,12 +642,15 @@ public:
             updatePlayerAt(0, p);
             currentPlayerIndex = 1;
         }
+
         gameOver = false;
     }
+
     string drawCard()
     {
         return deck.drawCard();
     }
+
     bool playCard(int cardIndex, string& message)
     {
         Player currentPlayer = getPlayerAt(currentPlayerIndex);
@@ -653,6 +662,7 @@ public:
             updatePlayerAt(currentPlayerIndex, currentPlayer);
             return false;
         }
+
         Card played(playedCard);
         Card topCard(deck.getTopDiscard());
 
@@ -665,27 +675,17 @@ public:
         }
 
         deck.discard(playedCard);
-        int cardPoints = getCardPoints(playedCard);
-        currentPlayer.addScore(cardPoints);
         updatePlayerAt(currentPlayerIndex, currentPlayer);
-
-        checkScoreLimit();
 
         message = "Player " + to_string(currentPlayer.id) + " played: " + playedCard;
 
         if (currentPlayer.getHandSize() == 0)
         {
             gameOver = true;
-            roundWinner = currentPlayerIndex;
-            message = "Player " + to_string(currentPlayer.id) + " WINS!";
-            return true;
-        }
+            gameWinner = currentPlayerIndex;
+            calculateGameScore(currentPlayerIndex);
 
-     
-        if (gameOver && currentPlayer.getHandSize() > 0)
-        {
-            roundWinner = currentPlayerIndex;
-            message = "Player " + to_string(currentPlayer.id) + " reached 100 points and WINS!";
+            message = "Player " + to_string(currentPlayer.id) + " WINS THE GAME!";
             return true;
         }
 
@@ -694,6 +694,7 @@ public:
         {
             message = "Player " + to_string(currentPlayer.id) + " played: " + playedCard + " - UNO!";
         }
+
         if (!played.isWild())
         {
             currentColor = played.getColor();
@@ -702,12 +703,23 @@ public:
         handleCardEffect(played, currentPlayer);
         return true;
     }
+
     void handleCardEffect(Card played, Player& currentPlayer)
     {
         string value = played.getValue();
 
         if (value == "Draw_4")
         {
+            Card topCard(deck.getTopDiscard());
+            if (deck.getDiscardPileSize() >= 2)
+            {
+                colorBeforeWild = currentColor;
+            }
+            else
+            {
+                colorBeforeWild = "";
+            }
+
             challengeAvailable = true;
             lastWildDraw4Player = currentPlayerIndex;
 
@@ -716,7 +728,11 @@ public:
 
             for (int i = 0; i < 4; i++)
             {
-                nextPlayer.drawCard(deck.drawCard());
+                string card = deck.drawCard();
+                if (!card.empty())
+                {
+                    nextPlayer.drawCard(card);
+                }
             }
             updatePlayerAt(nextIndex, nextPlayer);
             currentPlayerIndex = getNextPlayerIndex();
@@ -740,24 +756,38 @@ public:
 
             for (int i = 0; i < 2; i++)
             {
+                string card = deck.drawCard();
+                if (!card.empty())
+                {
+                    nextPlayer.drawCard(card);
+                }
+            }
+            updatePlayerAt(nextIndex, nextPlayer);
+            currentPlayerIndex = getNextPlayerIndex();
+        }
+    }
+
     void nextTurn()
     {
         currentPlayerIndex = getNextPlayerIndex();
-
     }
 
     void setCurrentColor(string color)
-
     {
-
         currentColor = color;
     }
-
 
     void drawCardForCurrentPlayer()
     {
         Player currentPlayer = getPlayerAt(currentPlayerIndex);
         lastDrawnCard = deck.drawCard();
+
+        if (lastDrawnCard.empty())
+        {
+            lastDrawnCard = "";
+            drawnCardPlayable = false;
+            return;
+        }
 
         currentPlayer.drawCard(lastDrawnCard);
         updatePlayerAt(currentPlayerIndex, currentPlayer);
@@ -766,6 +796,7 @@ public:
         Card topCard(deck.getTopDiscard());
         drawnCardPlayable = drawnCard.canPlayOn(topCard, currentColor);
     }
+
     bool canPlayDrawnCard()
     {
         return drawnCardPlayable && !lastDrawnCard.empty();
@@ -776,6 +807,7 @@ public:
         lastDrawnCard = "";
         drawnCardPlayable = false;
     }
+
     bool canChallenge()
     {
         return challengeAvailable;
@@ -797,14 +829,14 @@ public:
         challengeAvailable = false;
 
         Player challengedPlayer = getPlayerAt(lastWildDraw4Player);
-        Card topCard(deck.getTopDiscard());
 
         bool hadPlayableCard = false;
+
         for (int i = 0; i < challengedPlayer.getHandSize(); i++)
         {
             string cardName = challengedPlayer.hand.getCardAt(i);
             Card card(cardName);
-            if (!card.isWild() && card.getColor() == currentColor)
+            if (!card.isWild() && card.getColor() == colorBeforeWild)
             {
                 hadPlayableCard = true;
                 break;
@@ -813,32 +845,99 @@ public:
 
         if (hadPlayableCard)
         {
-            message = "Challenge successful! Player " + to_string(lastWildDraw4Player) + " draws 4 cards!";
+            message = "Challenge successful! Player " + to_string(lastWildDraw4Player) + " draws 4 more as penalty!";
 
-            Player currentPlayer = getPlayerAt(currentPlayerIndex);
             for (int i = 0; i < 4; i++)
             {
-                currentPlayer.hand.removeCard(currentPlayer.hand.getCardAt(0));
-                challengedPlayer.drawCard(deck.drawCard());
+                string card = deck.drawCard();
+                if (!card.empty())
+                {
+                    challengedPlayer.drawCard(card);
+                }
             }
-            updatePlayerAt(currentPlayerIndex, currentPlayer);
+
             updatePlayerAt(lastWildDraw4Player, challengedPlayer);
 
             return true;
         }
         else
         {
-            message = "Challenge failed! You draw 2 more cards!";
+            message = "Challenge failed! Player " + to_string(lastWildDraw4Player) + " played legally. You draw 2 more cards (6 total)!";
+
             Player currentPlayer = getPlayerAt(currentPlayerIndex);
-            currentPlayer.drawCard(deck.drawCard());
-            currentPlayer.drawCard(deck.drawCard());
+
+            for (int i = 0; i < 2; i++)
+            {
+                string card = deck.drawCard();
+                if (!card.empty())
+                {
+                    currentPlayer.drawCard(card);
+                }
+            }
             updatePlayerAt(currentPlayerIndex, currentPlayer);
 
             return false;
         }
     }
-
 };
+
+class Button
+{
+    float x, y, width, height;
+    string text;
+    Color normalColor;
+    Color hoverColor;
+
+public:
+    Button() : x(0), y(0), width(0), height(0), text(""),
+               normalColor(GREEN), hoverColor(YELLOW) {}
+
+    Button(float px, float py, float w, float h, string t)
+        : x(px), y(py), width(w), height(h), text(t),
+          normalColor(GREEN), hoverColor(YELLOW) {}
+
+    bool isHovered()
+    {
+        Vector2 mouse = GetMousePosition();
+        return mouse.x >= x && mouse.x <= x + width &&
+               mouse.y >= y && mouse.y <= y + height;
+    }
+
+    bool isClicked()
+    {
+        return isHovered() && IsMouseButtonPressed(MOUSE_LEFT_BUTTON);
+    }
+
+    void draw()
+    {
+        Color col = isHovered() ? hoverColor : normalColor;
+        DrawRectangle((int)x, (int)y, (int)width, (int)height, col);
+        DrawRectangleLines((int)x, (int)y, (int)width, (int)height, BLACK);
+
+        int textWidth = MeasureText(text.c_str(), 20);
+        DrawText(text.c_str(), (int)(x + width/2 - textWidth/2),
+                 (int)(y + height/2 - 10), 20, BLACK);
+    }
+};
+
+class CardRect
+{
+    float x, y, width, height;
+    string cardName;
+
+public:
+    CardRect() : x(0), y(0), width(0), height(0), cardName("") {}
+
+    CardRect(float px, float py, float w, float h, string name)
+        : x(px), y(py), width(w), height(h), cardName(name) {}
+
+    bool contains(Vector2 point)
+    {
+        return point.x >= x && point.x <= x + width &&
+               point.y >= y && point.y <= y + height;
+    }
+};
+
 class unoGUI
 {
 private:
@@ -913,6 +1012,7 @@ private:
             textureNames.push("Wild_Draw_4");
         }
     }
+
     Texture2D getTexture(string name)
     {
         Stack<string> tempNames;
@@ -952,14 +1052,10 @@ private:
 
     void drawCard(string cardName, float x, float y, float width, float height, bool highlight = false)
     {
-
         Texture2D cardTexture = getTexture(cardName);
-
-
         Rectangle source = {0, 0, (float)cardTexture.width, (float)cardTexture.height};
         Rectangle dest = {x, y, width, height};
         DrawTexturePro(cardTexture, source, dest, {0, 0}, 0, WHITE);
-
 
         if (highlight)
         {
@@ -1001,9 +1097,10 @@ public:
 
         InitWindow(width, height, "UNO - Raylib GUI");
         SetTargetFPS(60);
-
-        string cardBackPath = "E:/BSCS-Semester3/DSA/UNO/assets/cards/back.jpg";
         texCardBack = LoadTexture("E:/BSCS-Semester3/DSA/UNO/assets/cards/back.jpg");
+        texLogo = LoadTexture("E:/BSCS-Semester3/DSA/UNO/assets/cards/logo.png");
+        texPlayButton = LoadTexture("E:/BSCS-Semester3/DSA/UNO/assets/cards/playbutton.png");
+
         loadCardImages();
     }
 
@@ -1048,6 +1145,7 @@ public:
             updateColorSelectionScreen();
         }
     }
+
     void draw()
     {
         BeginDrawing();
@@ -1086,16 +1184,11 @@ public:
                 messageTimer = 2.0f;
             }
         }
-
     }
 
     void drawStartScreen()
     {
         ClearBackground((Color){20, 120, 40, 255});
-        texLogo = LoadTexture("E:/BSCS-Semester3/DSA/UNO/assets/cards/logo.png");
-        texPlayButton = LoadTexture("E:/BSCS-Semester3/DSA/UNO/assets/cards/playbutton.png");
-
-
         float scale = 0.3f;
         float logoW = texLogo.width * scale;
         float logoH = texLogo.height * scale;
@@ -1111,7 +1204,7 @@ public:
         float Btnscale = 0.5f;
         playButton.width = (float)texPlayButton.width * Btnscale;
         playButton.height = (float)texPlayButton.height * Btnscale;
-        playButton.x = screenWidth / 2.0f - playButton.width / 2.0f +20 ;
+        playButton.x = screenWidth / 2.0f - playButton.width / 2.0f + 20;
         playButton.y = screenHeight * 0.65f + 80;
 
         Color tint = WHITE;
@@ -1134,6 +1227,7 @@ public:
             currentScreen = 3;
             return;
         }
+
         if (waitingForColorChoice)
         {
             return;
@@ -1141,21 +1235,24 @@ public:
 
         Player currentPlayer = game->getPlayerAtPublic(game->getCurrentPlayerIndex());
         Vector2 mouse = GetMousePosition();
-
-
         bool hasDrawnCard = !game->getLastDrawnCard().empty();
+        bool deckHasCards = game->canDrawFromDeck();
+
+        if (!hasDrawnCard && !deckHasCards && !game->currentPlayerHasPlayableCard())
+        {
+            message = "Deck empty and no playable cards. Turn skipped.";
+            messageTimer = 2.0f;
+            game->nextTurn();
+            selectedCardIndex = -1;
+            return;
+        }
+
         if (game->canChallenge())
         {
-
-                };
-
-                Rectangle acceptBtnRect = {
-                    (float)(screenWidth / 2 - 100),
-                    (float)(screenHeight / 2 - 50),
-
-                    200,
-                    60
-                };
+            if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON))
+            {
+                Rectangle challengeBtnRect = {(float)(screenWidth / 2 - 100), (float)(screenHeight / 2 - 150), 200, 60};
+                Rectangle acceptBtnRect = {(float)(screenWidth / 2 - 100), (float)(screenHeight / 2 - 50), 200, 60};
 
                 if (CheckCollisionPointRec(mouse, challengeBtnRect))
                 {
@@ -1174,47 +1271,65 @@ public:
             return;
         }
 
-        if (!hasDrawnCard)
-        {
-            hoveredCardIndex = -1;
-            Stack<CardRect> tempRects = currentPlayerCardRects;
-            int index = 0;
+        hoveredCardIndex = -1;
+        int drawnCardIndex = hasDrawnCard ? currentPlayer.getHandSize() - 1 : -1;
+        Stack<CardRect> tempRects = currentPlayerCardRects;
+        int index = 0;
 
-            while (!tempRects.isEmpty())
+        while (!tempRects.isEmpty())
+        {
+            CardRect rect = tempRects.pop();
+            int cardIdx = currentPlayer.getHandSize() - 1 - index;
+            if (!hasDrawnCard || cardIdx == drawnCardIndex)
             {
-                CardRect rect = tempRects.pop();
                 if (rect.contains(mouse))
                 {
-                    hoveredCardIndex = currentPlayer.getHandSize() - 1 - index;
+                    hoveredCardIndex = cardIdx;
                     break;
                 }
-                index++;
             }
-            if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON))
-            {
-                Stack<CardRect> tempRects2 = currentPlayerCardRects;
-                int idx = 0;
+            index++;
+        }
 
-                while (!tempRects2.isEmpty())
+        if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON))
+        {
+            Stack<CardRect> tempRects2 = currentPlayerCardRects;
+            int idx = 0;
+
+            while (!tempRects2.isEmpty())
+            {
+                CardRect rect = tempRects2.pop();
+                int cardIdx = currentPlayer.getHandSize() - 1 - idx;
+                if (!hasDrawnCard || cardIdx == drawnCardIndex)
                 {
-                    CardRect rect = tempRects2.pop();
                     if (rect.contains(mouse))
                     {
-                        selectedCardIndex = currentPlayer.getHandSize() - 1 - idx;
+                        selectedCardIndex = cardIdx;
                         break;
                     }
-                    idx++;
                 }
+                idx++;
             }
+        }
+
+        if (!hasDrawnCard)
+        {
             Button drawBtn(screenWidth - 150, screenHeight - 100, 120, 40, "DRAW");
             if (drawBtn.isClicked())
             {
                 game->drawCardForCurrentPlayer();
-                if (game->canPlayDrawnCard())
+
+                if (game->getLastDrawnCard().empty())
+                {
+                    message = "Deck is empty! Cannot draw. Turn skipped.";
+                    messageTimer = 2.0f;
+                    selectedCardIndex = -1;
+                }
+                else if (game->canPlayDrawnCard())
                 {
                     message = "Card drawn and is playable!";
                     messageTimer = 2.0f;
-                    selectedCardIndex = currentPlayer.getHandSize();
+                    selectedCardIndex = currentPlayer.getHandSize() - 1;
                 }
                 else
                 {
@@ -1225,84 +1340,8 @@ public:
                     selectedCardIndex = -1;
                 }
             }
-            Button playBtn(screenWidth - 150, screenHeight - 160, 120, 40, "PLAY");
-            if (playBtn.isClicked() && selectedCardIndex >= 0)
-            {
-                string cardToPlay = currentPlayer.hand.getCardAt(selectedCardIndex);
-                Card card(cardToPlay);
 
-                if (card.isWild())
-                {
-                    waitingForColorChoice = true;
-                    pendingWildCard = cardToPlay;
-                    currentScreen = 2;
-                }
-                else
-                {
-                    string msg;
-                    if (game->playCard(selectedCardIndex, msg))
-                    {
-                        message = msg;
-                        messageTimer = 2.0f;
-                        if (!game->isGameOver())
-                        {
-                            game->nextTurn();
-                        }
-                    }
-                    else
-                    {
-                        message = msg;
-                        messageTimer = 2.0f;
-                    }
-                    selectedCardIndex = -1;
-                }
-            }
-        }
-        else
-        {
-            int drawnCardIndex = currentPlayer.getHandSize() - 1;
-            hoveredCardIndex = -1;
-            Stack<CardRect> tempRects = currentPlayerCardRects;
-            int index = 0;
-
-            while (!tempRects.isEmpty())
-            {
-                CardRect rect = tempRects.pop();
-                int cardIdx = currentPlayer.getHandSize() - 1 - index;
-                if (rect.contains(mouse) && cardIdx == drawnCardIndex)
-                {
-                    hoveredCardIndex = drawnCardIndex;
-                    break;
-                }
-                index++;
-            }
-            if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON))
-            {
-                Stack<CardRect> tempRects2 = currentPlayerCardRects;
-                int idx = 0;
-
-                while (!tempRects2.isEmpty())
-                {
-                    CardRect rect = tempRects2.pop();
-                    int cardIdx = currentPlayer.getHandSize() - 1 - idx;
-                    if (rect.contains(mouse) && cardIdx == drawnCardIndex)
-                    {
-                        selectedCardIndex = drawnCardIndex;
-                        break;
-                    }
-                    idx++;
-                }
-            }
-            Button skipBtn(screenWidth - 150, screenHeight - 100, 120, 40, "SKIP");
-            if (skipBtn.isClicked())
-            {
-                game->clearDrawnCard();
-                game->nextTurn();
-                message = "Turn skipped. Next player's turn.";
-                messageTimer = 2.0f;
-                selectedCardIndex = -1;
-            }
-            if (selectedCardIndex == drawnCardIndex)
+            if (selectedCardIndex >= 0)
             {
                 Button playBtn(screenWidth - 150, screenHeight - 160, 120, 40, "PLAY");
                 if (playBtn.isClicked())
@@ -1323,7 +1362,6 @@ public:
                         {
                             message = msg;
                             messageTimer = 2.0f;
-                            game->clearDrawnCard();
                             if (!game->isGameOver())
                             {
                                 game->nextTurn();
@@ -1339,127 +1377,8 @@ public:
                 }
             }
         }
-
-
-        if (!hasDrawnCard)
-        {
-            hoveredCardIndex = -1;
-            Stack<CardRect> tempRects = currentPlayerCardRects;
-            int index = 0;
-
-            while (!tempRects.isEmpty())
-            {
-                CardRect rect = tempRects.pop();
-                if (rect.contains(mouse))
-                {
-                    hoveredCardIndex = currentPlayer.getHandSize() - 1 - index;
-                    break;
-                }
-                index++;
-            }
-            if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON))
-            {
-                Stack<CardRect> tempRects2 = currentPlayerCardRects;
-                int idx = 0;
-
-                while (!tempRects2.isEmpty())
-                {
-                    CardRect rect = tempRects2.pop();
-                    if (rect.contains(mouse))
-                    {
-                        selectedCardIndex = currentPlayer.getHandSize() - 1 - idx;
-                        break;
-                    }
-                    idx++;
-                }
-            }
-            Button drawBtn(screenWidth - 150, screenHeight - 100, 120, 40, "DRAW");
-            if (drawBtn.isClicked())
-            {
-                game->drawCardForCurrentPlayer();
-                if (game->canPlayDrawnCard())
-                {
-                    message = "Card drawn and is playable!";
-                    messageTimer = 2.0f;
-                    selectedCardIndex = currentPlayer.getHandSize();
-                }
-                else
-                {
-                    message = "Card drawn but not playable. Turn skipped.";
-                    messageTimer = 2.0f;
-                    game->clearDrawnCard();
-                    game->nextTurn();
-                    selectedCardIndex = -1;
-                }
-            }
-            Button playBtn(screenWidth - 150, screenHeight - 160, 120, 40, "PLAY");
-            if (playBtn.isClicked() && selectedCardIndex >= 0)
-            {
-                string cardToPlay = currentPlayer.hand.getCardAt(selectedCardIndex);
-                Card card(cardToPlay);
-
-                if (card.isWild())
-                {
-                    waitingForColorChoice = true;
-                    pendingWildCard = cardToPlay;
-                    currentScreen = 2;
-                }
-                else
-                {
-                    string msg;
-                    if (game->playCard(selectedCardIndex, msg))
-                    {
-                        message = msg;
-                        messageTimer = 2.0f;
-                        if (!game->isGameOver())
-                        {
-                            game->nextTurn();
-                        }
-                    }
-                    else
-                    {
-                        message = msg;
-                        messageTimer = 2.0f;
-                    }
-                    selectedCardIndex = -1;
-                }
-            }
-        }
         else
         {
-            int drawnCardIndex = currentPlayer.getHandSize() - 1;
-            hoveredCardIndex = -1;
-            Stack<CardRect> tempRects = currentPlayerCardRects;
-            int index = 0;
-
-            while (!tempRects.isEmpty())
-            {
-                CardRect rect = tempRects.pop();
-                int cardIdx = currentPlayer.getHandSize() - 1 - index;
-                if (rect.contains(mouse) && cardIdx == drawnCardIndex)
-                {
-                    hoveredCardIndex = drawnCardIndex;
-                    break;
-                }
-                index++;
-            }
-            if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON))
-            {
-                Stack<CardRect> tempRects2 = currentPlayerCardRects;
-                int idx = 0;
-
-                while (!tempRects2.isEmpty())
-                {
-                    CardRect rect = tempRects2.pop();
-                    int cardIdx = currentPlayer.getHandSize() - 1 - idx;
-                    if (rect.contains(mouse) && cardIdx == drawnCardIndex)
-                    {
-                        selectedCardIndex = drawnCardIndex;
-                        break;
-                    }
-                    idx++;
-                }
-            }
             Button skipBtn(screenWidth - 150, screenHeight - 100, 120, 40, "SKIP");
             if (skipBtn.isClicked())
             {
@@ -1469,6 +1388,7 @@ public:
                 messageTimer = 2.0f;
                 selectedCardIndex = -1;
             }
+
             if (selectedCardIndex == drawnCardIndex)
             {
                 Button playBtn(screenWidth - 150, screenHeight - 160, 120, 40, "PLAY");
@@ -1510,44 +1430,34 @@ public:
 
     void drawGameScreen()
     {
-        
         DrawText("Color:", screenWidth - 300, 20, 20, WHITE);
         Color currentCol = getColorFromString(game->getCurrentColor());
         DrawRectangle(screenWidth - 200, 15, 40, 30, currentCol);
         DrawRectangleLines(screenWidth - 200, 15, 40, 30, BLACK);
-
         string dir = game->getClockwise() ? "Clockwise" : "Counter-CW";
         DrawText(dir.c_str(), screenWidth - 140, 20, 20, WHITE);
 
-        
         Player currentPlayer = game->getPlayerAtPublic(game->getCurrentPlayerIndex());
         string current_player = "Current Player: " + to_string(currentPlayer.id);
         DrawText(current_player.c_str(), screenWidth - 600, 20, 20, WHITE);
 
-        DrawText("SCORES:", screenWidth - 300, 60, 22, YELLOW);
-        for (int i = 0; i < game->getTotalPlayers(); i++)
-        {
-            Player p = game->getPlayerAtPublic(i);
-            string scoreText = "Player " + to_string(p.id) + ": " + to_string(p.getScore());
-            DrawText(scoreText.c_str(), screenWidth - 290, 90 + i * 30, 20, WHITE);
-        }
-
         drawCenterArea();
         drawOtherPlayersHands();
         drawCurrentPlayerHand();
+
         if (game->canChallenge())
         {
             DrawRectangle(0, 0, screenWidth, screenHeight, (Color){0, 0, 0, 180});
-
             DrawText("Wild Draw 4 played!", screenWidth / 2 - 200, screenHeight / 2 - 300, 40, YELLOW);
             DrawText("Do you want to challenge?", screenWidth / 2 - 180, screenHeight / 2 - 250, 30, WHITE);
-            DrawText("Challenge if you think they had a playable card",
-                    screenWidth / 2 - 250, screenHeight / 2 - 200, 20, LIGHTGRAY);
+            DrawText("Challenge if you think they had a playable card", screenWidth / 2 - 250, screenHeight / 2 - 200, 20, LIGHTGRAY);
+
             Button challengeBtn(screenWidth / 2 - 100, screenHeight / 2 - 150, 200, 60, "CHALLENGE");
             challengeBtn.draw();
 
             Button acceptBtn(screenWidth / 2 - 100, screenHeight / 2 - 50, 200, 60, "ACCEPT");
             acceptBtn.draw();
+
             if (messageTimer > 0)
             {
                 int msgWidth = 500;
@@ -1561,11 +1471,24 @@ public:
             }
             return;
         }
+
         bool hasDrawnCard = !game->getLastDrawnCard().empty();
+        bool deckHasCards = game->canDrawFromDeck();
+
         if (!hasDrawnCard)
         {
-            Button drawBtn(screenWidth - 150, screenHeight - 100, 120, 40, "DRAW");
-            drawBtn.draw();
+            if (deckHasCards)
+            {
+                Button drawBtn(screenWidth - 150, screenHeight - 100, 120, 40, "DRAW");
+                drawBtn.draw();
+            }
+            else
+            {
+                DrawRectangle(screenWidth - 180, screenHeight - 110, 160, 60, (Color){200, 50, 50, 200});
+                DrawRectangleLines(screenWidth - 180, screenHeight - 110, 160, 60, YELLOW);
+                DrawText("Deck Empty!", screenWidth - 165, screenHeight - 100, 18, WHITE);
+                DrawText("Play a card!", screenWidth - 165, screenHeight - 75, 16, YELLOW);
+            }
 
             if (selectedCardIndex >= 0)
             {
@@ -1577,6 +1500,7 @@ public:
         {
             Button skipBtn(screenWidth - 150, screenHeight - 100, 120, 40, "SKIP");
             skipBtn.draw();
+
             int drawnCardIndex = currentPlayer.getHandSize() - 1;
             if (selectedCardIndex == drawnCardIndex)
             {
@@ -1605,6 +1529,7 @@ public:
         int deckX = centerX - 200;
         int deckY = centerY - 150;
         drawCardBack(deckX, deckY, 160, 220);
+
         int discardX = centerX + 100;
         int discardY = centerY - 150;
         string topCard = game->getTopDiscard();
@@ -1620,11 +1545,11 @@ public:
         }
     }
 
-
     void drawOtherPlayersHands()
     {
         int currentIdx = game->getCurrentPlayerIndex();
         int totalPlayers = game->getTotalPlayers();
+
         for (int i = 0; i < totalPlayers; i++)
         {
             if (i == currentIdx)
@@ -1653,21 +1578,20 @@ public:
             {
                 continue;
             }
+
             string label = "Player " + to_string(p.id);
             DrawText(label.c_str(), x, y - 25, 25, WHITE);
             string count = to_string(p.getHandSize()) + " cards";
             DrawText(count.c_str(), x, y, 20, YELLOW);
+
             int cardsToDraw = (p.getHandSize() > 5) ? 5 : p.getHandSize();
             for (int j = 0; j < cardsToDraw; j++)
             {
-                drawCardBack(x + j * 20, y + 25,88, 140);
-            }
-            if (i == currentIdx)
-            {
-                DrawRectangleLines(x - 5, y - 30, 180, 180, YELLOW);
+                drawCardBack(x + j * 20, y + 25, 88, 140);
             }
         }
     }
+
     void drawCurrentPlayerHand()
     {
         Player currentPlayer = game->getPlayerAtPublic(game->getCurrentPlayerIndex());
@@ -1675,8 +1599,10 @@ public:
 
         if (currentPlayer.getHandSize() == 0)
             return;
+
         bool hasDrawnCard = !game->getLastDrawnCard().empty();
         int drawnCardIndex = hasDrawnCard ? currentPlayer.getHandSize() - 1 : -1;
+
         int cardWidth, cardHeight, spacing;
         int handSize = currentPlayer.getHandSize();
         bool twoRows = false;
@@ -1712,6 +1638,7 @@ public:
             cardHeight = 96;
             spacing = 55;
         }
+
         string label = "Your Hand (Player " + to_string(currentPlayer.id) + ") - " +
                       to_string(currentPlayer.getHandSize()) + " cards";
 
@@ -1722,37 +1649,43 @@ public:
             int startY = screenHeight - cardHeight - 40;
 
             DrawText(label.c_str(), startX, startY - 30, 18, WHITE);
+
             for (int i = 0; i < currentPlayer.getHandSize(); i++)
             {
                 string cardName = currentPlayer.hand.getCardAt(i);
                 int cardX = startX + i * spacing;
                 int cardY = startY;
+
                 bool isDrawnCard = (i == drawnCardIndex);
                 bool canInteract = !hasDrawnCard || isDrawnCard;
                 bool isHighlighted = canInteract && (i == hoveredCardIndex || i == selectedCardIndex);
+
                 if (isHighlighted)
                 {
                     cardY -= 15;
                 }
 
                 drawCard(cardName, cardX, cardY, cardWidth, cardHeight, isHighlighted);
+
                 if (hasDrawnCard && !isDrawnCard)
                 {
                     DrawRectangle(cardX, cardY, cardWidth, cardHeight, (Color){0, 0, 0, 150});
                 }
+
                 if (isDrawnCard)
                 {
                     DrawRectangleLines(cardX - 3, cardY - 3, cardWidth + 6, cardHeight + 6, GOLD);
                     DrawRectangleLines(cardX - 2, cardY - 2, cardWidth + 4, cardHeight + 4, GOLD);
                 }
+
                 currentPlayerCardRects.push(CardRect(cardX, cardY, cardWidth, cardHeight, cardName));
+
                 string indexStr = to_string(i);
                 DrawText(indexStr.c_str(), cardX + 5, cardY + cardHeight + 5, 14, WHITE);
             }
         }
         else
         {
-
             int cardsPerRow = (handSize + 1) / 2;
             int bottomRowCards = handSize - cardsPerRow;
             int topRowWidth = cardsPerRow * spacing;
@@ -1763,62 +1696,78 @@ public:
             int bottomStartY = screenHeight - cardHeight - 40;
 
             DrawText(label.c_str(), screenWidth / 2 - 150, topStartY - 30, 18, WHITE);
+
             for (int i = 0; i < cardsPerRow; i++)
             {
                 string cardName = currentPlayer.hand.getCardAt(i);
                 int cardX = topStartX + i * spacing;
                 int cardY = topStartY;
+
                 bool isDrawnCard = (i == drawnCardIndex);
                 bool canInteract = !hasDrawnCard || isDrawnCard;
                 bool isHighlighted = canInteract && (i == hoveredCardIndex || i == selectedCardIndex);
-                if (isHighlighted)
-                {
-                    cardY -= 15;
-                }
-                drawCard(cardName, cardX, cardY, cardWidth, cardHeight, isHighlighted);
-                if (hasDrawnCard && !isDrawnCard)
-                {
-                    DrawRectangle(cardX, cardY, cardWidth, cardHeight, (Color){0, 0, 0, 150});
-                }
-                if (isDrawnCard)
-                {
-                    DrawRectangleLines(cardX - 3, cardY - 3, cardWidth + 6, cardHeight + 6, GOLD);
-                    DrawRectangleLines(cardX - 2, cardY - 2, cardWidth + 4, cardHeight + 4, GOLD);
-                }
-                currentPlayerCardRects.push(CardRect(cardX, cardY, cardWidth, cardHeight, cardName));
-                string indexStr = to_string(i);
-                DrawText(indexStr.c_str(), cardX + 5, cardY + cardHeight + 5, 14, WHITE);
-            }
-            for (int i = 0; i < bottomRowCards; i++)
-            {
-                int actualIndex = cardsPerRow + i;
-                string cardName = currentPlayer.hand.getCardAt(actualIndex);
-                int cardX = bottomStartX + i * spacing;
-                int cardY = bottomStartY;
-                bool isDrawnCard = (actualIndex == drawnCardIndex);
-                bool canInteract = !hasDrawnCard || isDrawnCard;
-                bool isHighlighted = canInteract && (actualIndex == hoveredCardIndex || actualIndex == selectedCardIndex);
+
                 if (isHighlighted)
                 {
                     cardY -= 15;
                 }
 
                 drawCard(cardName, cardX, cardY, cardWidth, cardHeight, isHighlighted);
+
                 if (hasDrawnCard && !isDrawnCard)
                 {
                     DrawRectangle(cardX, cardY, cardWidth, cardHeight, (Color){0, 0, 0, 150});
                 }
+
                 if (isDrawnCard)
                 {
                     DrawRectangleLines(cardX - 3, cardY - 3, cardWidth + 6, cardHeight + 6, GOLD);
                     DrawRectangleLines(cardX - 2, cardY - 2, cardWidth + 4, cardHeight + 4, GOLD);
                 }
+
                 currentPlayerCardRects.push(CardRect(cardX, cardY, cardWidth, cardHeight, cardName));
+
+                string indexStr = to_string(i);
+                DrawText(indexStr.c_str(), cardX + 5, cardY + cardHeight + 5, 14, WHITE);
+            }
+
+            for (int i = 0; i < bottomRowCards; i++)
+            {
+                int actualIndex = cardsPerRow + i;
+                string cardName = currentPlayer.hand.getCardAt(actualIndex);
+                int cardX = bottomStartX + i * spacing;
+                int cardY = bottomStartY;
+
+                bool isDrawnCard = (actualIndex == drawnCardIndex);
+                bool canInteract = !hasDrawnCard || isDrawnCard;
+                bool isHighlighted = canInteract && (actualIndex == hoveredCardIndex || actualIndex == selectedCardIndex);
+
+                if (isHighlighted)
+                {
+                    cardY -= 15;
+                }
+
+                drawCard(cardName, cardX, cardY, cardWidth, cardHeight, isHighlighted);
+
+                if (hasDrawnCard && !isDrawnCard)
+                {
+                    DrawRectangle(cardX, cardY, cardWidth, cardHeight, (Color){0, 0, 0, 150});
+                }
+
+                if (isDrawnCard)
+                {
+                    DrawRectangleLines(cardX - 3, cardY - 3, cardWidth + 6, cardHeight + 6, GOLD);
+                    DrawRectangleLines(cardX - 2, cardY - 2, cardWidth + 4, cardHeight + 4, GOLD);
+                }
+
+                currentPlayerCardRects.push(CardRect(cardX, cardY, cardWidth, cardHeight, cardName));
+
                 string indexStr = to_string(actualIndex);
                 DrawText(indexStr.c_str(), cardX + 5, cardY + cardHeight + 5, 14, WHITE);
             }
         }
     }
+
     void updateColorSelectionScreen()
     {
         Button redBtn(screenWidth/2 - 250, screenHeight/2 - 50, 100, 100, "RED");
@@ -1848,6 +1797,7 @@ public:
     {
         DrawRectangle(0, 0, screenWidth, screenHeight, (Color){0, 0, 0, 150});
         DrawText("Choose a Color for Wild Card", screenWidth/2 - 200, screenHeight/2 - 150, 30, WHITE);
+
         int btnY = screenHeight/2 - 50;
         int btnSize = 100;
 
@@ -1887,36 +1837,22 @@ public:
         selectedCardIndex = -1;
         currentScreen = 1;
     }
+
     void drawGameOverScreen()
     {
         DrawText("GAME OVER!", screenWidth/2 - 150, screenHeight/3, 50, YELLOW);
-        int winner = game->getRoundWinner();
-        if (winner == -1)
-        {
-            for (int i = 0; i < game->getTotalPlayers(); i++)
-            {
-                Player p = game->getPlayerAtPublic(i);
-                if (p.getHandSize() == 0)
-                {
-                    winner = i;
-                    break;
-                }
-            }
-        }
-        string winnerText = "Player " + to_string(winner) + " WINS!";
-        DrawText(winnerText.c_str(), screenWidth/2 - 100, screenHeight/2 - 100, 30, GREEN);
 
-        int winnerScore = game->getPlayerScore(winner);
-        string scoreText = "Score: " + to_string(winnerScore) + " points";
-        DrawText(scoreText.c_str(), screenWidth/2 - 120, screenHeight/2 - 50, 25, YELLOW);
+        int winner = game->getGameWinner();
+        string winnerText = "Player " + to_string(winner) + " WINS THE GAME!";
+        DrawText(winnerText.c_str(), screenWidth/2 - 200, screenHeight/2 - 100, 35, GREEN);
 
-        DrawText("Final Scores:", screenWidth/2 - 80, screenHeight/2, 22, WHITE);
+        DrawText("Final Scores:", screenWidth/2 - 80, screenHeight/2 - 30, 22, WHITE);
         for (int i = 0; i < game->getTotalPlayers(); i++)
         {
-            string score = "Player " + to_string(i) + ": " + to_string(game->getPlayerScore(i)) + " points";
-            Color color = (i == winner) ? GREEN : WHITE;
-            DrawText(score.c_str(), screenWidth/2 - 100,
-                    screenHeight/2 + 30 + i * 30, 20, color);
+            Player p = game->getPlayerAtPublic(i);
+            string score = "Player " + to_string(i) + ": " + to_string(p.getScore()) + " cards";
+            Color color = (i == winner) ? GREEN : RED;
+            DrawText(score.c_str(), screenWidth/2 - 100, screenHeight/2 + i * 30, 20, color);
         }
     }
 };
@@ -1927,7 +1863,5 @@ int main()
     Game game;
     unoGUI gui(&game, 1400, 900);
     gui.run();
-
     return 0;
 }
-
